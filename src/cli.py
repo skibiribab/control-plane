@@ -7,12 +7,14 @@ from src.commands.opencode_cmd import opencode_app
 from src.commands.backup import backup_app
 from src.commands.bookmarks import bookmarks_app
 from src.commands.chrome import chrome_app
+from src.commands.compress import compress_app
 from src.commands.contest import contest_app
 from src.commands.config_cmd import config_app
 from src.commands.configure_cmd import configure_app
 from src.commands.gh import gh_app
 from src.commands.docker import docker_app
 from src.commands.drive import drive_app
+from src.commands.export_cmd import export_app
 from src.commands.git import git_app, ship_cmd
 from src.commands.hygiene import hygiene_app
 from src.commands.languages import languages_app
@@ -24,6 +26,7 @@ from src.commands.publish import publish_app
 from src.commands.puzzles import puzzles_app
 from src.commands.release_cmd import release_app
 from src.commands.restore import restore_app
+from src.commands.scan import scan_app
 from src.commands.tasks import tasks_app
 from src.commands.test_cmd import test_app
 from src.commands.structure import structure_app
@@ -50,11 +53,14 @@ app.add_typer(languages_app, name="languages")
 app.add_typer(release_app, name="release")
 app.add_typer(backup_app, name="backup", hidden=True)
 app.add_typer(restore_app, name="restore")
+app.add_typer(scan_app, name="scan")
 app.add_typer(drive_app, name="drive")
 app.add_typer(notion_app, name="notion")
 app.add_typer(chrome_app, name="chrome")
+app.add_typer(compress_app, name="compress")
 app.add_typer(bookmarks_app, name="bookmarks", hidden=True)
 app.add_typer(docker_app, name="docker")
+app.add_typer(export_app, name="export")
 app.add_typer(contest_app, name="contest")
 app.add_typer(configure_app, name="configure")
 app.add_typer(config_app, name="config")

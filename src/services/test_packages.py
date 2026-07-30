@@ -334,6 +334,24 @@ TEST_PACKAGES: tuple[TestPackage, ...] = (
         notes=("Shared toolkit changes should run all toolkit-backed command tests.",),
         broad=True,
     ),
+    _pkg(
+        "compress",
+        source=("src/commands/compress.py", "src/services/compress.py", "src/services/scanner.py"),
+        tests=("tests/compress/",),
+        checks=("compress --help",),
+    ),
+    _pkg(
+        "scan",
+        source=("src/commands/scan.py", "src/services/scanner.py", "src/services/compress.py"),
+        tests=("tests/scan/",),
+        checks=("scan --help",),
+    ),
+    _pkg(
+        "export",
+        source=("src/commands/export_cmd.py", "src/services/backup_zip.py"),
+        tests=("tests/export/",),
+        checks=("export --help",),
+    ),
 )
 
 
