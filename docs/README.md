@@ -1,16 +1,15 @@
 # cli documentation
 
-1. [Setup](setup.md) — Linux terminal install and Docker verification
-2. [Release](release.md) — PyPI publishing and version checks
-3. [CI workflows](ci-workflows.md) — PR and release Docker pipelines
-4. [Git commands](git.md) — `cli git` reference
-5. [Chrome bookmarks](bookmarks.md) — exported-file bookmark helpers
-6. [Configuration](configuration.md) — YAML config files
-7. [Configure](configure.md) — `cli configure` user config bootstrap
-8. [Docker integration](docker.md) — test images, harness, and CI lanes
-9. [Contest validate](contest.md) — competitive programming two-tier runner
-10. [Architecture](architecture.md) — CLI → command → service → provider
-11. [Public CLI hardening](public-cli-hardening.md) — registry/docs/write-gate review
-12. [Development](development.md) — contributor setup and local Docker CI
+1. [Install](install.md) — Docker images, env config
+2. [Docker images](docker.md) — image tree, tags, rules
+3. [Commands](commands.md) — `cli <noun> <verb>` reference
+4. [Validation reference](validation.md) — tool → written-in → owning image
+5. [Git commands](git.md) — `cli git` reference
+6. [GitHub](gh.md) — `cli gh` passthrough + recipes + release
+7. [OpenCode](opencode.md) — `cli opencode` AI entry point
+8. [Secrets](secrets.md) — env-based credential handling
+9. [CI workflows](ci-workflows.md) — PR and release Docker pipelines
+10. [Architecture](architecture.md) — bin/lib/commands layout
+11. [Development](development.md) — contributor setup and local Docker CI
 
-**CI:** Pull requests and releases are validated in-repo via [`.github/workflows/`](../.github/workflows/). See [ci-workflows.md](ci-workflows.md) and [release.md](release.md).
+**CI:** Pull requests and releases are validated in-repo via [`.github/workflows/`](../.github/workflows/). See [ci-workflows.md](ci-workflows.md).

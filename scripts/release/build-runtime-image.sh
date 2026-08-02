@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
+# Build every runtime image variant (versioned tags only, no :latest).
 set -euo pipefail
-# shellcheck source=scripts/_common.sh
+# shellcheck source=/dev/null
 source "$(dirname "${BASH_SOURCE[0]}")/../_common.sh"
 
 version="${CLI_VERSION:?CLI_VERSION required}"
+root="$(gh_repo_root)"
+cd "$root"
 
-bash "$(dirname "${BASH_SOURCE[0]}")/build.sh" runtime \
-  --build-arg "CLI_VERSION=${version}" \
-  -t "${RUNTIME_IMAGE}:${version}" \
-  -t "${RUNTIME_IMAGE}:latest"
+for variant in "${RUNTIME_VARIANTS[@]}"; do
+  docker build -f "$(runtime_variant_dockerfile "$variant")" \
+    -t "$(runtime_variant_tag "$version" "$variant")" .
+done
+
+# Explicit alias for the base image (bare :${version} is the default pull).
+docker tag "${RUNTIME_IMAGE}:${version}" "${RUNTIME_IMAGE}:base-${version}"
+
+echo "built runtime images: ${RUNTIME_IMAGE}:${version} (+ variants)"

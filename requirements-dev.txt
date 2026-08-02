@@ -1,3 +1,0 @@
-# Dev/test install — canonical list lives in pyproject.toml ([dependency-groups].dev).
-# Prefer: uv sync   or   pip install -e ".[dev]"
--e .[dev]

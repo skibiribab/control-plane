@@ -1,383 +1,83 @@
-# GitHub integration (`cli gh`)
+# GitHub (`cli gh`)
 
-Deterministic GitHub operations for agents and humans. Uses authenticated **`gh`** by default, with an API token fallback for issue/PR REST operations and full Projects v2 GraphQL when `--transport api` or `auto` selects the API path. Output is JSON-first and writes use the same write-gate model as `cli git`.
+`cli gh` is a passthrough to the `gh` CLI plus AI recipes, issue CRUD, and
+Projects v2 management. Runs in the **base** image (git + gh + opencode).
 
-**AI orchestration:** [opencode.md](opencode.md) — `cli opencode gh` for AI-assisted issues/PRs; `cli gh` for deterministic GitHub I/O.
+## Passthrough
 
-**Shipped surface:** `cli gh issue`, `cli gh branch`, `cli gh pr`, and `cli gh policy` (blocked-operation catalog). Hub-only commands (projects, backlog, labels, workflows) are not registered on the standalone CLI.
+Any `gh` subcommand works as-is:
 
-## Prerequisites
+```bash
+cli gh issue list --state open --limit 10 --json number,title --jq '.[]'
+cli gh pr view 5
+cli gh api /repos/owner/repo
+```
 
-- `gh` installed and authenticated (`gh auth status`), or `GITHUB_TOKEN` / `GH_TOKEN` for API transport
-- `cli` on PATH
+Requires `gh` auth (local `gh auth login`) or `GITHUB_TOKEN`/`GH_TOKEN`.
 
-## Global flags
+## Issue CRUD (typed wrappers over `gh issue create/edit/delete`)
 
-| Flag | Default | Purpose |
-| --- | --- | --- |
-| `--repo owner/name` | gh context | Target repository |
-| `--format json\|table` | `json` | Output shape (agents use json) |
-| `--transport cli\|api\|auto` | `auto` | Prefer authenticated `gh`; fall back to API token in `auto` |
-| `--yes` / `-y` | off | Skip interactive write gate (use after Cursor **Proceed**) |
-
-Transport rules:
-
-- `cli`: force subprocess `gh` behavior.
-- `api`: use GitHub REST/GraphQL adapters; requires `--repo owner/name` or configured `gh.issues.repo` for repo-scoped operations.
-- `auto`: use authenticated `gh` when available, otherwise use `GITHUB_TOKEN`, `GH_TOKEN`, or `auth.gh.token_file`.
-
-When neither authenticated `gh` nor a token is available, `auto` and `api` fail with a single actionable error: *GitHub API transport needs GITHUB_TOKEN, GH_TOKEN, or auth.gh.token_file.*
-
-### Transport selection
-
-| Context | Recommended transport |
+| Command | Notes |
 | --- | --- |
-| Local dev with `gh auth login` | `auto` (default) |
-| CI / headless agents with PAT | `api` + `--repo owner/name` |
-| Debugging CLI vs API drift | force `cli` or `api` explicitly |
+| `cli gh issue create --title T [--body B] [--label L] [--assignee A] [--repo R]` | parent/child credit-guarded for epic/child titles |
+| `cli gh issue update <N> [--title T] [--body B] [--add-label L] [--remove-label L] [--state open\|closed] [--repo R]` | view-first |
+| `cli gh issue delete <N> [--repo R]` | |
+| `cli gh issue comment <N> --body B [--repo R]` | credit-checked **before** crafting/sending |
 
-### Token scopes
+## Projects v2 (via `gh api graphql`, no native gh subcommand)
 
-API transport needs a GitHub token with scopes matching the operation:
-
-| Surface | Classic PAT scopes | Fine-grained equivalent |
-| --- | --- | --- |
-| Issues, PRs, labels, repo reads | `repo` | Repository: Issues, Pull requests, Contents (read); Metadata |
-| Projects v2 (`cli gh project`) | `repo`, `project` | Repository + Projects (read/write) |
-| Org-owned projects | above + org membership | Organization project permissions |
-
-Configure via `GITHUB_TOKEN`, `GH_TOKEN`, or `auth.gh.token_file` in config.
-
-### Transport parity
-
-Every **shipped** command below works on both transports unless noted. This table is the acceptance checklist; `tests/gh/test_transport.py` parametrizes the P0 issue/PR API rows.
-
-#### Issues
-
-| Command | CLI | API | Policy / notes |
-| --- | --- | --- | --- |
-| `issue list` | yes | yes | REST |
-| `issue view` | yes | yes | REST; `--comments` supported |
-| `issue search` | yes | yes | REST search |
-| `issue create` | yes | yes | REST |
-| `issue edit` | yes | yes | REST |
-| `issue reopen` | yes | yes | REST |
-| `issue delete` | yes | yes | REST |
-| `issue comment` | yes | yes | REST |
-| `issue status` | yes | CLI | uses `gh` status aggregate |
-| `issue context` | yes | yes | composed REST (`issue view` + `list` + body `#N` refs) |
-| `issue batch` | yes | CLI-only | YAML batch orchestration |
-| `issue close` | blocked | blocked | policy — merge PR with Fixes/Closes |
-
-#### Pull requests
-
-| Command | CLI | API | Policy / notes |
-| --- | --- | --- | --- |
-| `pr list` | yes | yes | REST |
-| `pr view` | yes | yes | REST |
-| `pr diff` | yes | yes | REST files API (`--stat`) or diff URL |
-| `pr create` | yes | yes | REST |
-| `pr edit` | yes | yes | REST |
-| `pr comment` | yes | yes | REST |
-| `pr close` | yes | yes | REST |
-| `pr reopen` | yes | yes | REST |
-| `pr checks` | yes | yes | REST check-runs |
-| `pr review` | yes | yes | REST |
-| `pr ready` | yes | yes | REST GraphQL mutation via transport |
-| `pr status` | yes | CLI | uses `gh` status aggregate |
-| `pr` (shortcut) | yes | yes | API path uses REST + Contents API for `--template` |
-| `pr merge` | blocked | blocked | policy — use GitHub UI / auto-merge |
-
-#### Labels
-
-| Command | CLI | API | Policy / notes |
-| --- | --- | --- | --- |
-| `label list` | yes | yes | REST |
-| `label create` | yes | yes | REST |
-| `label delete` | yes | yes | REST |
-| `label sync` | yes | CLI | manifest diff + subprocess |
-
-#### Projects (`cli gh project`)
-
-| Command | CLI | API | Policy / notes |
-| --- | --- | --- | --- |
-| `project list` | yes | yes | GraphQL `projectsV2` |
-| `project view` | yes | yes | GraphQL `projectV2` node |
-| `project create` | yes | yes | GraphQL `createProjectV2` |
-| `project edit` | yes | yes | GraphQL `updateProjectV2` |
-| `project delete` | yes | yes | GraphQL `deleteProjectV2` |
-| `project item list` | yes | yes | GraphQL items pagination |
-| `project item view` | yes | yes | GraphQL item node |
-| `project item add` | yes | yes | GraphQL `addProjectV2ItemById` |
-| `project item edit` | yes | yes | GraphQL `updateProjectV2ItemFieldValue` |
-| `project item delete` | yes | yes | GraphQL `deleteProjectV2Item` |
-
-`--transport api` selects the GraphQL project provider; `--transport cli` uses `gh project` subprocess.
-
-#### Repo & backlog (CLI-first)
-
-| Command | CLI | API | Policy / notes |
-| --- | --- | --- | --- |
-| `repo view` | yes | partial | API: `pullRequestTemplates` via Contents API |
-| `repo list` | yes | yes | REST |
-| `repo readme-sync` | yes | CLI | write path via subprocess |
-| `backlog *` | yes | CLI-only | label/topo logic over `gh` reads |
-
-#### Boundary with Epic 08
-
-- **`cli gh project`** — low-level GitHub Projects v2 CRUD hub; honors `--transport`.
-- **`cli project`** — product workflow (pairs, lanes, deploy/ingest/sync, recurrence). See [project.md](project.md). Top-level `cli project` uses default `auto` transport unless extended.
-
-## Double-gate contract
-
-| Context | Cursor skill | cli write |
-| --- | --- | --- |
-| Agent after **Proceed** | AskQuestion in chat | append **`--yes`** |
-| Human in terminal | — | interactive gate or **`--yes`** |
-| Read-only | no gate | no **`--yes`** |
-
-## Issue commands
-
-### Read (no gate)
-
-```bash
-cli gh issue list --state open --limit 30 --format json
-cli gh issue view 42 --format json
-cli gh issue context 42 --format json
-cli gh issue search "label:bug" --format json
-```
-
-### Write (gate unless `--yes`)
-
-```bash
-cli gh issue create --title "1 — Epic" --body-file body.md --label epic:foo --yes
-cli gh issue edit 42 --title "1.1 — Child" --yes
-cli gh issue reopen 42 --yes
-cli gh issue delete 42 --yes
-cli gh issue comment 42 --body "Note" --yes
-cli gh issue status --format json
-cli gh issue batch --file batch.yaml --yes
-# cli gh issue close — blocked by policy (merge PR in UI and auto-close)
-```
-
-### Batch YAML shape
-
-```yaml
-operations:
-  - action: create
-    title: "1 — Epic title"
-    body_file: .cursor/gh/issue/epic.md
-    labels: ["epic:slug", "issue-type:epic"]
-  - action: create
-    title: "1.1 — Subissue"
-    body_file: .cursor/gh/issue/subissue.md
-    labels: ["epic:slug", "issue-type:child"]
-  - action: edit
-    number: 100
-    body_file: .cursor/gh/issue/epic-updated.md
-```
-
-### Issue context (agent rollup)
-
-`cli gh issue context N` returns one JSON object with the issue view, comments, epic issue/subissue context (from `epic:*` + `issue-type:*` labels), and `#N` body references resolved from the repo.
-
-```bash
-cli gh issue context 42 --format json
-```
-
-### Plan → backlog chain
-
-```bash
-cli gh issue batch --file plan.yaml --yes
-cli gh backlog tree --format json
-cli gh backlog next --format json
-```
-
-## Label commands
-
-Manifest path: **`config/gh/labels.manifest.yaml`** (repo-owned epic/area taxonomy).
-
-```bash
-cli gh label list --format json
-cli gh label create my-label --color ff0000 --yes
-cli gh label delete my-label --yes
-cli gh label sync --manifest config/gh/labels.manifest.yaml --yes
-cli gh label sync --manifest config/gh/labels.manifest.yaml --prune-orphans --yes
-```
-
-Retro-label open issues from a batch file:
-
-```bash
-cli gh issue batch --file config/gh/backlog-labelize.batch.yaml --yes
-```
-
-Common command map:
-
-| Flow | CLI |
+| Command | What it does |
 | --- | --- |
-| Backlog | `cli gh backlog next`, `cli gh backlog tree` |
-| Issues | `cli gh issue list`, `cli gh issue view`, `cli gh issue create`, `cli gh issue edit`, `cli gh issue reopen`, `cli gh issue status`, `cli gh issue delete` |
-| Labels | `cli gh label list`, `cli gh label sync` |
-| Pull requests | `cli gh pr list`, `cli gh pr view`, `cli gh pr create`, `cli gh pr edit`, `cli gh pr checks`, `cli gh pr review`, `cli gh pr ready`, `cli gh pr close` |
-| Projects | `cli gh project list`, `cli gh project create`, `cli gh project item add`, `cli gh project item edit` |
-| Blocked by policy | `cli gh pr merge`, `cli gh issue close`, `cli gh ruleset` |
+| `cli gh project list [--owner O]` | list Projects v2 (id, number, title, url) |
+| `cli gh project view <N> [--owner O]` | project + items (issue number/title) |
+| `cli gh project create --title T [--owner O]` | create a project |
+| `cli gh project update <N> --title T [--owner O]` | rename |
+| `cli gh project delete <N> [--owner O]` | delete |
+| `cli gh project item list <N> [--owner O]` | list items |
+| `cli gh project item add <N> --issue <issueN> [--repo R] [--owner O]` | add an issue to a project |
+| `cli gh project item remove <N> <itemId> [--owner O]` | remove an item |
 
-Full table: `cli links`.
+`--owner` defaults to the current repo's owner. Field editing is not included.
 
-## Pull request commands
+## AI recipes
 
-```bash
-cli gh pr list --format json
-cli gh pr view 10 --format json
-cli gh pr diff 10
-cli gh pr --yes                         # push if needed, then open PR titled "."
-cli gh pr --template bugfix --yes       # use an explicit PR template
-cli gh pr --no-push --yes               # create only when branch is already published
-cli gh pr create --title "…" --body-file pr.md --yes
-cli gh pr edit 10 --body-file pr.md --yes
-cli gh pr comment 10 --body "Looks good" --yes
-cli gh pr checks 10 --format json
-cli gh pr review 10 --approve --body "Approved" --yes
-cli gh pr ready 10 --yes
-cli gh pr reopen 10 --yes
-cli gh pr status --format json
-cli gh pr close 10 --yes
-# cli gh pr merge — blocked by policy (use GitHub UI / auto-merge)
-# cli gh issue close — blocked by policy (merge PR in UI and auto-close)
-# cli gh ruleset … — blocked by policy (use GitHub UI)
-```
+| Command | What it does |
+| --- | --- |
+| `cli gh issue pick` | deterministic next open issue |
+| `cli gh issue plan --issue N [--rounds N]` | opencode plan loop; **default 3 rounds**, final = one single-execution plan (no lint/test) |
+| `cli gh craft pr [--issue N]` | plan(3×) → exec(3×) → commit → PR → issue comment; credit-guarded at every write |
+| `cli gh release <tag> <version>` | create a GitHub release |
+| `cli gh policy list` | print merge policy (`pr-merge`) |
 
-`cli gh pr` without a subcommand is the quick PR shortcut. It uses title `.`,
-an empty body by default, runs the same write-gated push path as `cli git push`
-when the branch is dirty or unpublished, and then creates the PR. Use
-`--template NAME` to opt into a repository PR template; templates are not applied
-implicitly. When an open PR already exists for the branch, the shortcut returns
-that PR (`existing: true` in JSON) instead of creating a duplicate.
-
-## Project commands {#projects}
-
-GitHub Projects v2 CRUD is available through `cli gh project ...`; write commands use the same gate as issue and PR commands. `cli gh project` is the low-level transport/CRUD surface. `cli project` remains the product workflow for recurrent boards, lanes, local task pairs, deploy/ingest/sync, and recurrence.
+AI needs `opencode` + `DEEPSEEK_API_KEY`. Prompts explicitly forbid running
+linters/tests and demand a single complete execution.
 
 ```bash
-cli gh project list --owner gardusig --format json
-cli gh project view 1 --owner gardusig --format json
-cli gh --transport api project view 1 --owner gardusig --format json  # GraphQL Project v2 node
-cli gh project create --owner gardusig --title "Roadmap" --yes
-cli gh project edit 1 --owner gardusig --title "Roadmap v2" --yes
-cli gh project delete 1 --owner gardusig --yes
-
-cli gh project item list 1 --owner gardusig --format json
-cli gh project item view --project 1 --owner gardusig --id ITEM_ID
-cli gh project item add --project 1 --owner gardusig --issue 42 --lane todo --yes
-cli gh project item edit --project 1 --owner gardusig --id ITEM_ID --field Status --value Done --kind single-select --yes
-cli gh project item delete --project 1 --owner gardusig --id ITEM_ID --yes
+cli opencode setup
+cli gh issue pick
+cli gh issue plan --issue 5
+cli gh craft pr --issue 5
 ```
 
-## Blocked commands {#blocked-commands}
+## Limits — pre-flight rate limiters
 
-Some GitHub surfaces are **registered in the CLI** (they appear in `cli gh --help`) but **always exit with a policy error**.
+Every write checks its limit **before** doing work (counting is a cheap `gh`
+read; crafting AI text / sending only happens with available credit).
 
-| Blocked | CLI | Use instead |
+| Env | Default | Meaning |
 | --- | --- | --- |
-| PR merge | `cli gh pr merge N` | GitHub UI or PR **auto-merge** |
-| Issue close | `cli gh issue close N` | Merge a PR in GitHub UI with `Fixes #N`, `Closes #N`, or `Resolves #N` |
-| Rulesets | `cli gh ruleset …` | GitHub repository/org settings UI |
+| `CLI_GH_PLAN_ROUNDS` | 3 (max 5) | opencode plan rounds |
+| `CLI_GH_EXEC_RUNS` | 3 (max 5) | opencode execution passes |
+| `CLI_GH_MAX_PR` | 3 | max open PRs |
+| `CLI_GH_MAX_COMMITS_PR` | 10 | max commits per PR |
+| `CLI_GH_MAX_COMMENTS_PR` | 5 | max comments per PR |
+| `CLI_GH_MAX_COMMENTS_ISSUE` | 32 | max comments per issue |
+| `CLI_GH_MAX_PARENTS` | 8 | max parent (epic) issues |
+| `CLI_GH_MAX_CHILDREN` | 16 | max children per parent |
 
-List programmatically:
-
-```bash
-cli gh policy list --format json
-```
-
-**Provider guard:** any code path that calls `GhProvider.run()` with matching `gh` argv is rejected before subprocess spawn (same messages). PR merge has break-glass only: `CLI_ALLOW_GH_MERGE=1` (not recommended). Issue close has no break-glass.
-
-## Issue/Subissue Backlog
-
-Epic issues and subissues are organized with labels and ordinary GitHub issue references:
-
-```bash
-cli gh backlog organize --format json   # epic issues -> subissues (step 1..N)
-cli gh backlog levels --format json     # priority:1..N explanations
-cli gh backlog next --format json
-```
-
-`cli project ...` remains available for higher-level board workflows built on the same Projects provider.
-
-## Repo commands
-
-```bash
-cli gh --format json repo view
-cli gh --format json repo view --json-fields nameWithOwner,owner,issueTemplates,pullRequestTemplates
-cli gh --format json repo list --owner gardusig
-cli gh repo readme-sync --readme README.md --owner gardusig --dry-run
-```
-
-## Backlog commands
-
-Epic issue/subissue organization uses **`issue-type:epic`**, **`issue-type:child`**, **`epic:<slug>`**, and **`priority:N`** labels (levels 1–5; see `config/gh/priority-levels.yaml`). Subissue titles use **`{step} — {name}`** (step = topological order within the epic issue).
-
-```bash
-cli gh backlog organize --format json   # epic issues + sorted subissues + readiness
-cli gh backlog levels --format json     # priority scale with explanations
-cli gh backlog tree --format json       # same tree as organize (legacy keys included)
-cli gh backlog next --format json
-cli gh backlog resequence --file plan.yaml --yes
-```
-
-### Pick next issue workflow
-
-Use `cli gh` for deterministic issue selection and context gathering. It does not call AI
-providers or spend API tokens beyond normal GitHub `gh` reads.
-
-```bash
-cli gh --repo gardusig/python-cli backlog next --format json
-cli gh --repo gardusig/python-cli issue context 81 --format json
-cli test packages resolve --changed-path src/commands/gh.py --format json
-```
-
-If the selected issue needs AI planning, hand off explicitly to `cli opencode gh` after
-reviewing the context. Keep implementation and test selection decisions reproducible in
-`cli gh` and `cli test packages`.
-
-Resequence plan YAML:
-
-```yaml
-renames:
-  - number: 42
-    title: "1.2 — Renamed subissue"
-```
-
-## JSON output examples
-
-**`backlog next`:**
-
-```json
-{
-  "number": 71,
-  "title": "1.1 — PR prevalidate",
-  "url": "https://github.com/owner/repo/issues/71",
-  "sequence": "1.1 —"
-}
-```
-
-**`backlog tree`:**
-
-```json
-{
-  "repo": "owner/repo",
-  "roots": [{"number": 70, "title": "1 — Epic", "sequence": "1 —"}],
-  "epics": {"epic:slug": [{"number": 71, "title": "1.1 — Child"}]}
-}
-```
-
-## Tests
-
-Unit tests mock the gh provider: `tests/gh/test_commands.py`.
-
-Run: `cli test python unit .`
+Parents are detected by the `epic` label **or** a `^N —` title; children by the
+`child-of:<N>` label **or** a `^N.` title (both conventions, union).
 
 ## See also
 
-- [architecture.md](architecture.md) — CLI → Service → Provider
-- [opencode.md](opencode.md) — AI entry point (`cli opencode`)
-- cli epic **01** — GitHub integration
+- [commands.md](commands.md) · [opencode.md](opencode.md) · [install.md](install.md)

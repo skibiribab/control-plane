@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Ensure gardusig-cli inside the runtime image matches the Docker/PyPI version tag.
 set -euo pipefail
-# shellcheck source=scripts/_common.sh
+# shellcheck source=/dev/null
 source "$(dirname "${BASH_SOURCE[0]}")/../_common.sh"
 
 expected="${CLI_VERSION:?CLI_VERSION required}"
@@ -11,7 +11,7 @@ else
   got="$(cli --version)"
 fi
 if [[ "$got" != "$expected" ]]; then
-  echo "runtime version mismatch: docker/pypi tag ${expected}, cli --version ${got}" >&2
+  echo "runtime version mismatch: tag ${expected}, cli --version ${got}" >&2
   exit 1
 fi
 echo "runtime version ok: ${expected}"

@@ -1,22 +1,18 @@
 #!/usr/bin/env bash
-# Read-only integration smoke against a pulled runtime image via docker run.
+# Release smoke against the pulled runtime image via docker run.
 set -euo pipefail
-# shellcheck source=scripts/_common.sh
+# shellcheck source=/dev/null
 source "$(dirname "${BASH_SOURCE[0]}")/../_common.sh"
 
 _run_runtime_docker_smoke() {
   local version="${CLI_VERSION:?CLI_VERSION required}"
-  local fixtures_dir="/workspace/tests/fixtures/config"
-  if [[ ! -d "$fixtures_dir" ]]; then
-    echo "fixtures dir missing: ${fixtures_dir}" >&2
-    exit 1
-  fi
+  local image="${RUNTIME_IMAGE:?RUNTIME_IMAGE required}:${version}"
+
   docker run --rm \
-    -v "${fixtures_dir}:/config:ro" \
     -e CLI_PROFILE=test \
     -e CLI_CONFIG_DIR=/config \
     --entrypoint bash \
-    "${RUNTIME_IMAGE:?RUNTIME_IMAGE required}:${version}" \
+    "${image}" \
     -ec '
       set -euo pipefail
       got="$(cli --version)"
@@ -25,9 +21,15 @@ _run_runtime_docker_smoke() {
         exit 1
       fi
       cli --help >/dev/null
-      cli languages list >/dev/null
+      cli integration list >/dev/null
       cli gh policy list | grep -Fq pr-merge
     '
+
+  local variant variant_image
+  for variant in "${RUNTIME_VARIANTS[@]}"; do
+    variant_image="$(runtime_variant_tag "$version" "$variant")"
+    bash "$(dirname "${BASH_SOURCE[0]}")/runtime-smoke.sh" "${variant_image}" "$variant"
+  done
 }
 
 stage_run_with_timeout "${CI_RELEASE_SMOKE_TIMEOUT}" _run_runtime_docker_smoke

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# shellcheck source=scripts/_common.sh
+# shellcheck source=/dev/null
 source "$(dirname "${BASH_SOURCE[0]}")/../_common.sh"
 
 # Create GitHub release for tag vX.Y.Z (PyPI/Docker use X.Y.Z without v).
@@ -22,11 +22,10 @@ if command -v gh >/dev/null 2>&1 && [[ -n "${GH_TOKEN:-}" ]]; then
     --title "$tag" \
     --notes "Release **gardusig-cli ${version}**
 
-- PyPI: \`pip install gardusig-cli==${version}\`
-- Docker: \`${RUNTIME_IMAGE:-binarylifter/gardusig-cli}:${version}\`"
+- Docker: \`${RUNTIME_IMAGE:-binarylifter/gardusig-cli}:${version}\` (+ \`-base\`/\`-rust\`/\`-node\`/\`-python\`/\`-cpp\`/\`-go\`/\`-media\`/\`-java\`)"
   echo "Created GitHub release $tag"
   exit 0
 fi
 
 echo "Install gh and set GH_TOKEN to create release automatically."
-echo "Tag ${tag} — publish gardusig-cli ${version} on PyPI and ${RUNTIME_IMAGE:-binarylifter/gardusig-cli}:${version} on Docker Hub."
+echo "Tag ${tag} — publish gardusig-cli ${version} at ${RUNTIME_IMAGE:-binarylifter/gardusig-cli}:${version} on Docker Hub."

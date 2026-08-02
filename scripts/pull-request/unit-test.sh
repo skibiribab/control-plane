@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# shellcheck source=scripts/_common.sh
+# shellcheck source=/dev/null
 source "$(dirname "${BASH_SOURCE[0]}")/../_common.sh"
 
-stage_ensure_dev
-stage_run_with_timeout "${CI_UNIT_TIMEOUT:-5m}" python3 -m pytest -q -m "not integration" \
-  --cov=src \
-  --cov-config=coverage-unit.ini \
-  --cov-report=term-missing \
-  --cov-fail-under=80
+stage_run_with_timeout "${CI_UNIT_TIMEOUT:-5m}" bats --print-output-on-failure tests

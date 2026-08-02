@@ -7,18 +7,10 @@ set -euo pipefail
 : "${CI_INTEGRATION_TIMEOUT:=3m}"
 : "${CI_DOCKER_BUILD_TIMEOUT:=5m}"
 : "${CI_VERSION_CHECK_TIMEOUT:=2m}"
-: "${CI_TESTPYPI_TIMEOUT:=5m}"
-: "${CI_CONSUMER_TIMEOUT:=10m}"
 : "${CI_RESOLVE_TIMEOUT:=2m}"
 : "${CI_LINT_TIMEOUT:=5m}"
 : "${CI_RELEASE_SMOKE_TIMEOUT:=3m}"
 : "${CI_DOCKER_PUSH_TIMEOUT:=5m}"
-: "${CI_RUNTIME_INSTALL_TIMEOUT:=10m}"
-: "${PIP_INSTALL_ATTEMPTS:=12}"
-: "${PIP_INSTALL_INITIAL_DELAY:=4}"
-: "${PIP_INSTALL_BACKOFF_MULTIPLIER:=2}"
-: "${PIP_INSTALL_MAX_DELAY:=45}"
-: "${PYPI_INDEX_SETTLE_SECONDS:=0}"
 : "${DOCKER_REGISTRY_SETTLE_SECONDS:=0}"
 : "${DOCKER_PULL_ATTEMPTS:=12}"
 : "${DOCKER_PULL_INITIAL_DELAY:=4}"
@@ -30,25 +22,43 @@ gh_repo_root() {
 }
 
 PR_DOCKERFILE="${PR_DOCKERFILE:-docker/pull-request.dockerfile}"
-RELEASE_DOCKERFILE="${RELEASE_DOCKERFILE:-docker/release.dockerfile}"
+RELEASE_DOCKERFILE="${RELEASE_DOCKERFILE:-docker/base.dockerfile}"
 RUNTIME_IMAGE="${RUNTIME_IMAGE:-binarylifter/gardusig-cli}"
 
-gh_read_project_version() {
-  local root="${1:-$(gh_repo_root)}"
-  python3 - <<'PY' "$root/pyproject.toml"
-import sys
-import tomllib
+# shellcheck disable=SC2034  # consumed by release/pull-request scripts
+RUNTIME_VARIANTS=(base rust node python cpp go media java)
 
-with open(sys.argv[1], "rb") as handle:
-    print(tomllib.load(handle)["project"]["version"])
-PY
+runtime_variant_dockerfile() {
+  case "$1" in
+    base) echo "docker/base.dockerfile" ;;
+    rust) echo "docker/rust.dockerfile" ;;
+    node) echo "docker/node.dockerfile" ;;
+    python) echo "docker/python.dockerfile" ;;
+    cpp) echo "docker/cpp.dockerfile" ;;
+    go) echo "docker/go.dockerfile" ;;
+    media) echo "docker/media.dockerfile" ;;
+    java) echo "docker/java.dockerfile" ;;
+    *) echo "unknown runtime variant: $1" >&2; exit 2 ;;
+  esac
 }
 
-# Version / tag formats (all targets use bare semver X.Y.Z):
-#   Git tag:     1.2.3
-#   PyPI:        1.2.3
-#   Docker Hub:  1.2.3  (+ :latest)
-# Legacy tags may include a leading v; it is stripped before PyPI/Docker publish.
+runtime_variant_tag() {
+  local version="$1"
+  local variant="$2"
+  if [[ "$variant" == "base" ]]; then
+    echo "${RUNTIME_IMAGE}:${version}"
+  else
+    echo "${RUNTIME_IMAGE}:${version}-${variant}"
+  fi
+}
+
+# gh_read_project_version — version from the VERSION file (single source of truth).
+gh_read_project_version() {
+  local root="${1:-$(gh_repo_root)}"
+  tr -d '[:space:]' < "${root}/VERSION"
+}
+
+# Version / tag formats (all targets use bare semver X.Y.Z).
 gh_strip_v_prefix() {
   local raw="${1:?version required}"
   echo "${raw#v}"
@@ -58,40 +68,8 @@ gh_set_project_version() {
   local root="${1:?root required}"
   local version
   version="$(gh_strip_v_prefix "${2:?version required}")"
-  python3 - <<'PY' "$root" "$version"
-import re
-import sys
-from pathlib import Path
-
-root = Path(sys.argv[1])
-version = sys.argv[2]
-pyproject = root / "pyproject.toml"
-init_py = root / "src" / "__init__.py"
-
-text = pyproject.read_text(encoding="utf-8")
-new_text, count = re.subn(
-    r'^(version\s*=\s*")[^"]+(")',
-    rf'\g<1>{version}\g<2>',
-    text,
-    count=1,
-    flags=re.MULTILINE,
-)
-if count != 1:
-    raise SystemExit("failed to update version in pyproject.toml")
-pyproject.write_text(new_text, encoding="utf-8")
-
-init_text = init_py.read_text(encoding="utf-8")
-new_init, init_count = re.subn(
-    r'^__version__\s*=\s*"[^"]+"',
-    f'__version__ = "{version}"',
-    init_text,
-    count=1,
-    flags=re.MULTILINE,
-)
-if init_count != 1:
-    raise SystemExit("failed to update __version__ in src/__init__.py")
-init_py.write_text(new_init, encoding="utf-8")
-PY
+  printf '%s\n' "$version" > "${root}/VERSION"
+  echo "VERSION -> ${version}"
 }
 
 gh_write_output() {
@@ -125,20 +103,11 @@ export_cli_test_profile() {
   export CLI_PROFILE="${CLI_PROFILE:-test}"
 }
 
+# stage_ensure_dev — no-op in the bash CLI (no pip/python). Present for
+# compatibility with stage wrappers.
 stage_ensure_dev() {
-  local root
-  root="$(gh_repo_root)"
   export_cli_test_profile
-  cd "$root"
-  if command -v uv >/dev/null 2>&1 && [[ -f "${root}/uv.lock" ]]; then
-    uv sync --group dev
-    return
-  fi
-  local pip=(pip)
-  if ! command -v pip >/dev/null 2>&1; then
-    pip=(python3 -m pip)
-  fi
-  "${pip[@]}" install --no-cache-dir -e ".[dev]"
+  true
 }
 
 stage_ensure_test_deps() {
@@ -148,142 +117,34 @@ stage_ensure_test_deps() {
 stage_compare_versions() {
   local base="$1"
   local head="$2"
-  python3 - <<'PY' "$base" "$head"
-import sys
 
-def parse(version: str) -> tuple[int, ...]:
-    parts: list[int] = []
-    for piece in version.strip().lstrip("v").split("."):
-        digits = ""
-        for char in piece:
-            if char.isdigit():
-                digits += char
-            else:
-                break
-        parts.append(int(digits or "0"))
-    return tuple(parts)
+  # Compare MAJOR.MINOR.PATCH numerically (component-wise), so 1.3.0 > 1.2.10.
+  _ver_cmp() {
+    local v="$1"
+    local -a parts=()
+    local piece
+    for piece in ${v//./ }; do
+      parts+=("${piece//[^0-9]/0}")
+    done
+    while ((${#parts[@]} < 3)); do parts+=(0); done
+    printf '%s\n' "${parts[@]}"
+  }
 
-base = parse(sys.argv[1])
-head = parse(sys.argv[2])
-if head <= base:
-    raise SystemExit(
-        f"version {sys.argv[2]!r} is not greater than {sys.argv[1]!r}"
-    )
-print(f"version ok: {sys.argv[2]} > {sys.argv[1]}")
-PY
-}
-
-pypi_backoff_seconds() {
-  local attempt="$1"
-  python3 - <<'PY' "$attempt" "${PIP_INSTALL_INITIAL_DELAY}" "${PIP_INSTALL_BACKOFF_MULTIPLIER}" "${PIP_INSTALL_MAX_DELAY}"
-import math
-import sys
-
-attempt = int(sys.argv[1])
-initial = float(sys.argv[2])
-multiplier = float(sys.argv[3])
-cap = float(sys.argv[4])
-delay = min(initial * (multiplier ** max(0, attempt - 1)), cap)
-print(int(math.ceil(delay)))
-PY
-}
-
-pypi_registry_backoff_seconds() {
-  pypi_backoff_seconds "$1"
-}
-
-docker_registry_backoff_seconds() {
-  local attempt="$1"
-  python3 - <<'PY' "$attempt" "${DOCKER_PULL_INITIAL_DELAY}" "${DOCKER_PULL_BACKOFF_MULTIPLIER}" "${DOCKER_PULL_MAX_DELAY}"
-import math
-import sys
-
-attempt = int(sys.argv[1])
-initial = float(sys.argv[2])
-multiplier = float(sys.argv[3])
-cap = float(sys.argv[4])
-delay = min(initial * (multiplier ** max(0, attempt - 1)), cap)
-print(int(math.ceil(delay)))
-PY
-}
-
-pypi_settle_before_pull() {
-  local package="$1"
-  local version="$2"
-  local index="${3:-pypi}"
-  local settle="${PYPI_INDEX_SETTLE_SECONDS}"
-  if (( settle > 0 )); then
-    echo "settling ${settle}s before checking ${package}==${version} on ${index}..."
-    sleep "$settle"
-  fi
-}
-
-pypi_index_has_version() {
-  local package="$1"
-  local version="$2"
-  local index="${3:-pypi}"
-  local url
-  if [[ "$index" == "pypi" ]]; then
-    url="https://pypi.org/pypi/${package}/json"
-  else
-    url="https://test.pypi.org/pypi/${package}/json"
-  fi
-  local response
-  response="$(curl -fsS "$url" 2>/dev/null || true)"
-  [[ -n "$response" ]] && printf '%s' "$response" | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-version = sys.argv[1]
-files = (data.get('releases') or {}).get(version) or []
-sys.exit(0 if files else 1)
-" "$version"
-}
-
-pypi_pip_install_args() {
-  local package="$1"
-  local version="$2"
-  local index="${3:-pypi}"
-  if [[ "$index" == "pypi" ]]; then
-    printf '%s\0' pip install --no-cache-dir "${package}==${version}"
-  else
-    printf '%s\0' pip install --no-cache-dir \
-      --index-url https://test.pypi.org/simple/ \
-      --extra-index-url https://pypi.org/simple/ \
-      "${package}==${version}"
-  fi
-}
-
-# Wait for index propagation, then pip install, with exponential backoff between attempts.
-pypi_wait_and_install_package() {
-  local package="${1:-gardusig-cli}"
-  local version="${2:?version required}"
-  local index="${3:-pypi}"
-  local attempts="${PIP_INSTALL_ATTEMPTS}"
-  local attempt=1
-  local -a pip_args=()
-
-  pypi_settle_before_pull "$package" "$version" "$index"
-
-  while (( attempt <= attempts )); do
-    if pypi_index_has_version "$package" "$version" "$index"; then
-      mapfile -d '' -t pip_args < <(pypi_pip_install_args "$package" "$version" "$index")
-      if "${pip_args[@]}"; then
-        echo "installed ${package}==${version} from ${index}"
-        return 0
-      fi
-      echo "index lists ${package}==${version} on ${index} but pip install failed (${attempt}/${attempts})"
-    else
-      echo "waiting for ${package}==${version} on ${index} (${attempt}/${attempts})..."
+  local -a b h
+  mapfile -t b < <(_ver_cmp "$base")
+  mapfile -t h < <(_ver_cmp "$head")
+  local i
+  for ((i = 0; i < 3; i++)); do
+    if ((h[i] > b[i])); then
+      echo "version ok: ${head} > ${base}"
+      return 0
     fi
-    if (( attempt < attempts )); then
-      local delay
-      delay="$(pypi_backoff_seconds "$attempt")"
-      echo "retrying in ${delay}s..."
-      sleep "$delay"
+    if ((h[i] < b[i])); then
+      echo "version ${head} is not greater than ${base}" >&2
+      return 1
     fi
-    attempt=$((attempt + 1))
   done
-  echo "failed to install ${package}==${version} from ${index} after ${attempts} attempts" >&2
+  echo "version ${head} is not greater than ${base}" >&2
   return 1
 }
 
@@ -303,7 +164,7 @@ docker_settle_before_pull() {
   fi
 }
 
-# Wait for Docker Hub tag propagation, then pull, with exponential backoff between attempts.
+# Wait for Docker Hub tag propagation, then pull, with exponential backoff.
 docker_wait_and_pull() {
   local image="${1:?image required}"
   local tag="${2:?tag required}"
@@ -324,7 +185,8 @@ docker_wait_and_pull() {
     fi
     if (( attempt < attempts )); then
       local delay
-      delay="$(docker_registry_backoff_seconds "$attempt")"
+      delay="$(( DOCKER_PULL_INITIAL_DELAY * (2 ** (attempt - 1)) ))"
+      (( delay > DOCKER_PULL_MAX_DELAY )) && delay="${DOCKER_PULL_MAX_DELAY}"
       echo "retrying in ${delay}s..."
       sleep "$delay"
     fi

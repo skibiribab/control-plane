@@ -1,8 +1,0 @@
-{
-  "providers": {
-    "deepseek": {
-      "apiKey": "${DEEPSEEK_API_KEY}"
-    }
-  },
-  "defaultModel": "deepseek/deepseek-chat"
-}

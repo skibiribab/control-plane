@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Resolve release coordinates from a pushed git tag (X.Y.Z).
 set -euo pipefail
-# shellcheck source=scripts/_common.sh
+# shellcheck source=/dev/null
 source "$(dirname "${BASH_SOURCE[0]}")/../_common.sh"
 
 _resolve_tag_version() {
@@ -21,14 +21,32 @@ _resolve_tag_version() {
   root="$(gh_repo_root)"
   project_version="$(gh_read_project_version "$root")"
   if [[ "$version" != "$project_version" ]]; then
-    echo "tag ${git_tag} (${version}) must match pyproject (${project_version})" >&2
+    echo "tag ${git_tag} (${version}) must match VERSION (${project_version})" >&2
     exit 1
+  fi
+
+  # Downgrade guard: the new release must be greater than the previous one.
+  local prev_version
+  if [[ -n "${PREV_VERSION:-}" ]]; then
+    prev_version="${PREV_VERSION}"
+  else
+    prev_version="$(git tag --sort=-v:refname 2>/dev/null \
+      | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+' \
+      | grep -vx "$ref" \
+      | head -n1 \
+      | sed 's/^v//' \
+      || true)"
+  fi
+  if [[ -n "$prev_version" ]]; then
+    if ! stage_compare_versions "$prev_version" "$version"; then
+      echo "tag ${git_tag} (${version}) must be greater than the previous release (${prev_version})" >&2
+      exit 1
+    fi
   fi
 
   gh_write_output tag "$git_tag"
   gh_write_output git_tag "$git_tag"
   gh_write_output version "$version"
-  gh_write_output pypi_version "$version"
   gh_write_output docker_tag "$version"
 }
 

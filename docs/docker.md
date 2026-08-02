@@ -1,154 +1,80 @@
 # Docker
 
-Workflow routers live in [`gardusig/cli`](https://github.com/gardusig/cli). This repo owns `docker/*.dockerfile`, `scripts/pull-request/`, `scripts/release/`, the `cli docker` monitor/cleanup commands, and pipeline contracts under [`.github/workflows/`](../.github/workflows/).
+This repo owns two kinds of Docker artifacts with clearly separated purposes:
 
-Run a gate from the repo root:
+| Kind | File | Purpose | For whom |
+| --- | --- | --- | --- |
+| **Usable runtime images** | `docker/{base,rust,node,python,media,cpp,go,java}.dockerfile` | `cli` (bash) plus the tools for each domain | Everyone (pull and run) |
+| **Development pipeline** | `docker/pull-request.dockerfile` | Build the bash CLI, run bats tests, publish images | This repo's CI only |
 
-```bash
-bash scripts/pull-request/build.sh unit-test
-bash scripts/release/build.sh runtime
-```
+## Usable images (`binarylifter/gardusig-cli`)
 
-Or invoke Docker directly:
+One tag per image, all versioned (no `latest`). Every image inherits **base**
+(Alpine + the bash CLI + core shelling tools); each adds its language/domain
+toolchain and bakes `CLI_RUNTIME`.
 
-```bash
-docker build -f docker/pull-request.dockerfile --target <stage> .
-docker build -f docker/release.dockerfile --target <stage> .
-```
-
-Common PR targets (`docker/pull-request.dockerfile`): `version-check`, `unit-test`, `testpypi`, `testpypi-consumer`.
-
-Release targets (`docker/release.dockerfile`): `pypi`, `runtime`.
-
-## CI image layout
-
-Each Dockerfile stage copies the repo (or consumer scripts only) and runs stage scripts under `scripts/pull-request/` or `scripts/release/`. Local verification:
-
-```bash
-bash scripts/local/compare-docker-pipelines.sh
-bash scripts/pull-request/build.sh unit-test
-```
-
-## CLI base image (hub)
-
-`gardusig/cli` may publish a lean hub image for jobs that run pip-installed `gardusig-cli` shortcuts. Language repos use their own `Dockerfile` bases.
-
-## Docker CLI Commands
-
-`cli docker` is monitor/cleanup only. It does not start containers, run services, or invoke compose.
-
-### Command matrix
-
-Public `cli docker` acceptance checklist. Integration gate exercises JSON and filter rows in `docker_integration.py`.
-
-| Command | Read/Write | `--format json` | Filters | Write gate |
-| --- | --- | --- | --- | --- |
-| `ps` | read | yes | `--name`, `--filter` | — |
-| `containers` | read | yes | `--name`, `--status`, `--filter`, `--running` | — |
-| `images` | read | yes | `--repository`, `--filter` | — |
-| `stats` | read | yes | `--name`, `--filter` | — |
-| `top` | read | yes | `--name`, `--repository`, `--filter` | — |
-| `df` | read | yes (`{"text":…}`) | — | — |
-| `stop` | write | yes (`stopped`, `count`) | — | `--yes` |
-| `container-delete` | write | yes (`deleted`, `count`) | — | `--yes` |
-| `image-delete` | write | yes (`image_prune`, `all_images`) | — | `--yes` |
-| `clean` | write | yes (per-target payload) | — | `--yes` |
-| `reset` | write | yes (full summary object) | — | `--yes` |
-
-Read-only commands:
-
-| Command | Purpose |
-| --- | --- |
-| `cli docker ps` | Running containers sorted by writable layer size |
-| `cli docker containers` | All containers sorted by on-disk size |
-| `cli docker images` | Images sorted by size |
-| `cli docker stats` | Top CPU, memory, or storage consumers |
-| `cli docker top` | Dashboard across CPU, memory, container storage, and image storage |
-| `cli docker df` | `docker system df` disk usage summary |
-
-Cleanup commands require a write gate or `--yes`:
-
-| Command | Purpose |
-| --- | --- |
-| `cli docker stop --yes` | Stop running containers |
-| `cli docker container-delete --yes` | Remove containers with `docker rm -f` |
-| `cli docker image-delete --yes` | Prune unused images |
-| `cli docker clean containers --yes` | Remove containers only |
-| `cli docker clean images --yes` | Prune images only |
-| `cli docker clean cache --yes` | Prune build cache only |
-| `cli docker clean all --yes` | Remove containers and prune images/cache |
-| `cli docker reset --yes` | Stop all, remove all containers, prune images and cache |
-
-## JSON Output
-
-Read-only commands default to rich tables for humans. Use `--format json` for agents:
-
-```bash
-cli docker ps --format json
-cli docker containers --status exited --format json
-cli docker images --format json
-cli docker stats --by all --format json
-cli docker top --format json
-cli docker df --format json
-```
-
-`df --format json` wraps the raw Docker text as `{"text": "..."}` because `docker system df` is not a stable structured API across installed Docker versions.
-
-Write commands also accept `--format json` after a successful `--yes` run:
-
-```bash
-cli docker stop --yes --format json
-cli docker container-delete web --yes --format json
-cli docker reset --yes --format json
-```
-
-Example `stop` payload: `{"stopped": ["abc123"], "count": 1}`.
-
-## Install vs verify
-
-| Requirement | Read commands | Live integration |
+| Tag | Contents | Typical use |
 | --- | --- | --- |
-| `docker` on PATH | required | required |
-| Docker daemon socket | required for real data | required (`check_docker_commands.py --live`) |
+| `:1.2.0` (alias `:base-1.2.0`) | bash CLI + git, gh, docker-cli, opencode, shellcheck, actionlint, curl, coreutils, zip/unzip/tar | `sh lint`, `dockerfile lint` (needs socket), `structure lint`, `git`, `gh`, `docker`, `opencode`, `integration` |
+| `:1.2.0-rust` | + rust/cargo, lychee (musl) | `url`, `rust lint/test` |
+| `:1.2.0-node` | + node/npm, markdownlint-cli, jq | `md lint`, `json lint`, `tasks lint`, `typescript`/`javascript` lint+test, `node` |
+| `:1.2.0-python` | + python3/pip, codespell, yamllint | `yml lint`, `python lint/test` |
+| `:1.2.0-media` | + ffmpeg, imagemagick, poppler-utils | `pdf lint`, `png/jpg/… lint`, `mp4/… scan/compress` |
+| `:1.2.0-cpp` | + gcc/g++/make/cmake/clang-format | `cpp lint/test` |
+| `:1.2.0-go` | + golang | `go lint/test` |
+| `:1.2.0-java` | + OpenJDK 21, Maven, Gradle | `java lint/test` |
 
-Mocked integration (`python tests/integration/check_docker_commands.py`) patches `run_docker` and does not need a daemon.
-
-## Filters
-
-Container commands accept Docker `ps` filters plus a convenience name filter:
-
-```bash
-cli docker ps --name cli --format json
-cli docker containers --status exited --format json
-cli docker stats --filter label=cli --format json
-cli docker top --name cli --format json
-```
-
-Image commands accept Docker image filters plus a convenience repository/reference filter:
+Pull the image you need and run `cli` against a mounted repo:
 
 ```bash
-cli docker images --repository cli-contest:runner --format json
-cli docker images --filter dangling=false --format json
-cli docker top --repository cli-contest:runner --format json
+docker run --rm -v "$PWD:/repo" -w /repo binarylifter/gardusig-cli:1.2.0 sh lint .
+docker run --rm -v "$PWD:/repo" -w /repo binarylifter/gardusig-cli:1.2.0-node md lint .
+docker run --rm -v "$PWD:/repo" -w /repo binarylifter/gardusig-cli:1.2.0-python yml lint .
+docker run --rm -v "$PWD:/repo" -w /repo binarylifter/gardusig-cli:1.2.0 git status
 ```
 
-Filters affect monitoring output only. Cleanup commands still require explicit names or write-gated broad cleanup.
+In GitHub Actions:
 
-## Contest Runner Lifecycle
+```yaml
+- run: docker run --rm -v "${{ github.workspace }}:/repo" -w /repo binarylifter/gardusig-cli:1.2.0 sh lint .
+```
 
-`cli contest validate` uses the `cli-contest:runner` image for Docker-backed competitive programming checks. The image build recipe belongs to the CI hub; this repo documents and monitors it.
+## Rules
 
-Useful read-only checks:
+- **Markdown/JSON/YAML/image/PDF/video tooling lives only in its owning image.**
+  `cli md lint` works in `-node`, `cli yml lint` in `-python`, `cli pdf lint` in
+  `-media`, `cli url` in `-rust` — and fails elsewhere with a recommendation.
+- **`dockerfile lint` needs the daemon socket**: `-v /var/run/docker.sock:/var/run/docker.sock`.
+- **`docker` commands need the socket** the same way.
+- **git on mounted repos**: the image sets `git config --global --add safe.directory '*'`.
+- **Config is pure env**: pass `-e GITHUB_TOKEN=…`, `-e DEEPSEEK_API_KEY=…`, etc.
+  No config files, no JSON, no jq-for-config.
+- **Exit codes**: `cli <noun> lint` exits 0 on success, non-zero on failure.
+
+Every dependency — Alpine base, apk packages (exact versions), static
+binaries, npm/pip packages, and the bash CLI itself — is version-pinned
+in `docker/runtime/versions.env`. Tags are versioned only.
+
+Images are **multi-stage**: a `src` stage does `COPY . .` (whole context), and
+the `final` stage copies only the relevant artifacts (`/cli /lib /commands
+/VERSION`) to `/opt/cli` plus its installed toolchain. The `/usr/local/bin/cli`
+binary exists only inside the built image — the repo carries source only.
+`.dockerignore` ignores just `.git`; the repo's `.gitignore` is a forbid-all
+allowlist, enforced by `cli ignore lint .`.
+
+Build locally (from the repo checkout):
 
 ```bash
-cli docker images --repository cli-contest:runner --format json
-cli docker containers --name cli-contest --format json
-cli docker stats --name cli-contest --format json
+docker build -f docker/base.dockerfile -t cli-base .
+docker build -f docker/rust.dockerfile -t cli-rust .
+bash scripts/release/runtime-smoke.sh cli-base base
+bash scripts/release/runtime-smoke.sh cli-rust rust
 ```
 
-Use cleanup commands only after reviewing the write-gate preview:
+## Development pipeline (`docker/pull-request.dockerfile`)
 
-```bash
-cli docker container-delete cli-contest-runner --yes
-cli docker image-delete --yes
-```
+Used by PR and release CI. Targets: `resolve`, `resolve-release`,
+`version-check`, `unit-test` (bats), `integration-smoke`,
+`ci-push`/`ci-smoke`/`ci-github-release`. Every CI job that builds images cleans
+up afterwards (`docker image prune -af && docker builder prune -af`) so runners
+don't fill up — it's fine to re-download.

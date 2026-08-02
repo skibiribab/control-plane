@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Resolve PR head version and greatest published PyPI/TestPyPI version.
+# Resolve PR head version and greatest previous release tag (BASE_VERSION).
 set -euo pipefail
-# shellcheck source=scripts/_common.sh
+# shellcheck source=/dev/null
 source "$(dirname "${BASH_SOURCE[0]}")/../_common.sh"
 
 _resolve_versions() {
@@ -11,7 +11,7 @@ _resolve_versions() {
 
   local version base_version
   version="$(gh_read_project_version "$root")"
-  base_version="$(bash scripts/pull-request/host-last-published-version.sh)"
+  base_version="${BASE_VERSION:-$(bash scripts/pull-request/host-last-published-version.sh)}"
 
   gh_write_output version "$version"
   gh_write_output base_version "$base_version"

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# shellcheck source=scripts/_common.sh
+# shellcheck source=/dev/null
 source "$(dirname "${BASH_SOURCE[0]}")/../_common.sh"
 
 target="${1:?target required}"
 shift
 
-DOCKERFILE="${RELEASE_DOCKERFILE}"
+DOCKERFILE="${DOCKERFILE:-${RELEASE_DOCKERFILE}}"
 root="$(gh_repo_root)"
 cd "$root"
 

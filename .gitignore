@@ -1,66 +1,25 @@
-# Allowed tracked roots (do not add ignore patterns that hide these):
-#   config/ docs/ scripts/ src/ tests/ .github/
-#   docker/pull-request.dockerfile docker/release.dockerfile
-#
-# --- Cursor / IDE ---
-.cursor/
-.idea/
-.vscode/
+# Allowlist — only these paths may be tracked in this repo.
+# Everything else is ignored by default; add a `!` entry to allow new roots.
 
-# --- Python ---
-.venv/
-.uv/
-__pycache__/
-*.py[cod]
-*$py.class
-*.egg
-*.egg-info/
-dist/
-build/
-.mypy_cache/
-.ruff_cache/
-.tox/
-.hypothesis/
-pip-wheel-metadata/
-.eggs/
+*
 
-# --- Tests / coverage ---
-.pytest_cache/
-.integration-scratch/
-.coverage
-.coverage.*
-coverage.xml
-htmlcov/
-
-# --- Build / packaging (never commit) ---
-src-*/
-src.egg-info/
-*.whl
-
-# --- Integration temp dirs (host leaks outside Docker scratch) ---
-cli-git-*/
-cli-public-*/
-cli-workflow-*/
-cli-tag-zip-*/
-cli-outside-git-*/
-cli-contest-*/
-cli-*-origin.git/
-
-# --- Secrets / local env ---
-.env
-.env.local
-.env.*.local
-
-# --- OS ---
-.DS_Store
-**/.DS_Store
-.AppleDouble
-._*
-
-# --- Editor swap files ---
-*~
-*.swp
-*.swo
-
-# --- Logs ---
-*.log
+!.gitignore
+!.dockerignore
+!.github/
+!.github/**
+!LICENSE
+!README.md
+!VERSION
+!cli
+!lib/
+!lib/**
+!commands/
+!commands/**
+!docker/
+!docker/**
+!scripts/
+!scripts/**
+!tests/
+!tests/**
+!docs/
+!docs/**

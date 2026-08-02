@@ -11,12 +11,8 @@ smoke_default_config_dir() {
 }
 
 smoke_setup_config() {
+  # Pure-env config: no config files required.
   export CLI_PROFILE="${CLI_PROFILE:-test}"
-  export CLI_CONFIG_DIR="${CLI_CONFIG_DIR:-$(smoke_default_config_dir)/tests/fixtures/config}"
-  if [[ ! -d "$CLI_CONFIG_DIR" ]]; then
-    echo "CLI_CONFIG_DIR does not exist: $CLI_CONFIG_DIR" >&2
-    exit 1
-  fi
 }
 
 smoke_require_cli() {
@@ -76,7 +72,7 @@ smoke_cleanup_git_repo() {
 smoke_run_cli_help() {
   cli --help >/dev/null
   cli --version >/dev/null
-  cli languages list >/dev/null
+  cli integration list >/dev/null
   cli git --help >/dev/null
   cli gh --help >/dev/null
 }

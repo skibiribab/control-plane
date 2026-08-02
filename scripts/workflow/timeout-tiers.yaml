@@ -1,4 +1,0 @@
-# GitHub Actions step timeout tiers (minutes). Max per step: long (9).
-short: 3
-medium: 6
-long: 9

@@ -1,4 +1,0 @@
-timeout: 10
-memory_mb: 256
-cxx_std: c++17
-image: cli-contest:runner

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Compare PR version against the greatest published PyPI/TestPyPI version (BASE_VERSION from host).
+# Version gate: PR VERSION must be greater than the greatest previous release
+# tag (BASE_VERSION from resolve). Skipped only when there is no previous tag.
 set -euo pipefail
-# shellcheck source=scripts/_common.sh
+# shellcheck source=/dev/null
 source "$(dirname "${BASH_SOURCE[0]}")/../_common.sh"
 
 _run_version_check() {
@@ -10,7 +11,7 @@ _run_version_check() {
   cd "$root"
 
   if [[ -z "${BASE_VERSION:-}" ]]; then
-    echo "no published PyPI/TestPyPI version yet — version gate skipped"
+    echo "no previous release tag yet — version gate skipped (first release)"
     return 0
   fi
 

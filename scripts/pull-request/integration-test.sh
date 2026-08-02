@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-# shellcheck source=scripts/_common.sh
+# shellcheck source=/dev/null
 source "$(dirname "${BASH_SOURCE[0]}")/../_common.sh"
 
 stage_ensure_dev

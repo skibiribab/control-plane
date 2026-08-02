@@ -1,8 +1,0 @@
-# Runtime dependencies — keep in sync with pyproject.toml [project.dependencies].
-typer>=0.15
-pydantic>=2.10
-pydantic-settings>=2.7
-platformdirs>=4.3
-PyYAML>=6.0.2
-rich>=13.9
-httpx>=0.28
