@@ -1,0 +1,43 @@
+name: issue-review (ai-coder reusable)
+
+on:
+  workflow_call:
+    inputs:
+      repo:
+        type: string
+        required: true
+        description: Target repository (owner/name)
+      issue_number:
+        type: string
+        required: false
+        default: ''
+        description: Single issue to review; empty = review all open issues
+    secrets:
+      PAT_TOKEN:
+        required: true
+        description: Fine-grained PAT with Contents+Issues read/write on the target repo
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  review-issues:
+    runs-on: ubuntu-latest
+    if: github.repository != 'gardusig/ai-coder'
+    steps:
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.repo }}
+          token: ${{ secrets.PAT_TOKEN }}
+
+      # ai marker: issue-review-gh
+      # TODO(ai): for each open issue without an AI plan comment, post one plan
+      # comment: clear title, repro/context, acceptance criteria, label suggestions,
+      # duplicate flags. Never auto-merge duplicates. Skip human-assigned issues.
+      - name: AI stub — review issues
+        run: |
+          echo "AI_STAGE=issue-review"
+          echo "REPO=${{ inputs.repo }}"
+          echo "ISSUE=${{ inputs.issue_number }}"

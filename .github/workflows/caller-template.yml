@@ -1,0 +1,133 @@
+# ai-coder caller template
+#
+# Install this file into a target repo as .github/workflows/ai-coder.yml and set
+# the PAT_TOKEN secret (fine-grained, Contents+Issues read/write on this repo).
+# Pick the stage from the Actions tab; the reusable workflow runs from gardusig/ai-coder.
+name: ai-coder
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        type: choice
+        description: Which ai-coder stage to run
+        required: true
+        default: issue-review
+        options:
+          - issue-find-gaps
+          - issue-create-epic
+          - issue-review
+          - issue-pick-task
+          - pr-create
+          - pr-fix
+          - pr-review
+          - pr-janitor
+      repo:
+        type: string
+        required: false
+        default: ''
+        description: Override target repo (defaults to this repo)
+      issue_number:
+        type: string
+        required: false
+        default: ''
+        description: Issue number (issue-create-epic needs epic_title; pr-create needs this)
+      pr_number:
+        type: string
+        required: false
+        default: ''
+        description: PR number (pr-fix, pr-review, pr-janitor)
+      epic_title:
+        type: string
+        required: false
+        default: ''
+        description: Parent issue title for issue-create-epic
+      max_attempts:
+        type: number
+        required: false
+        default: 3
+        description: Janitor/fix attempt threshold
+
+permissions:
+  contents: read
+
+jobs:
+  find-gaps:
+    if: inputs.stage == 'issue-find-gaps'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: gardusig/ai-coder/.github/workflows/issue-find-gaps.yml@main
+        with:
+          repo: ${{ inputs.repo || github.repository }}
+        secrets: inherit
+
+  create-epic:
+    if: inputs.stage == 'issue-create-epic'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: gardusig/ai-coder/.github/workflows/issue-create-epic.yml@main
+        with:
+          repo: ${{ inputs.repo || github.repository }}
+          epic_title: ${{ inputs.epic_title }}
+        secrets: inherit
+
+  review-issues:
+    if: inputs.stage == 'issue-review'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: gardusig/ai-coder/.github/workflows/issue-review.yml@main
+        with:
+          repo: ${{ inputs.repo || github.repository }}
+          issue_number: ${{ inputs.issue_number }}
+        secrets: inherit
+
+  pick-task:
+    if: inputs.stage == 'issue-pick-task'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: gardusig/ai-coder/.github/workflows/issue-pick-task.yml@main
+        with:
+          repo: ${{ inputs.repo || github.repository }}
+        secrets: inherit
+
+  create-pr:
+    if: inputs.stage == 'pr-create'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: gardusig/ai-coder/.github/workflows/pr-create.yml@main
+        with:
+          repo: ${{ inputs.repo || github.repository }}
+          issue_number: ${{ inputs.issue_number }}
+        secrets: inherit
+
+  fix-pr:
+    if: inputs.stage == 'pr-fix'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: gardusig/ai-coder/.github/workflows/pr-fix.yml@main
+        with:
+          repo: ${{ inputs.repo || github.repository }}
+          pr_number: ${{ inputs.pr_number }}
+          max_attempts: ${{ inputs.max_attempts }}
+        secrets: inherit
+
+  review-pr:
+    if: inputs.stage == 'pr-review'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: gardusig/ai-coder/.github/workflows/pr-review.yml@main
+        with:
+          repo: ${{ inputs.repo || github.repository }}
+          pr_number: ${{ inputs.pr_number }}
+        secrets: inherit
+
+  janitor:
+    if: inputs.stage == 'pr-janitor'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: gardusig/ai-coder/.github/workflows/pr-janitor.yml@main
+        with:
+          repo: ${{ inputs.repo || github.repository }}
+          pr_number: ${{ inputs.pr_number }}
+          max_attempts: ${{ inputs.max_attempts }}
+        secrets: inherit
