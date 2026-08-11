@@ -2,7 +2,7 @@
 #
 # Install this file into a target repo as .github/workflows/ai-coder.yml and set
 # the PAT_TOKEN secret (fine-grained, Contents+Issues read/write on this repo).
-# Pick the stage from the Actions tab; the reusable workflow runs from gardusig/ai-coder.
+# Pick the stage from the Actions tab; the reusable workflow runs from gardusig/control-plane.
 name: ai-coder
 
 on:
@@ -56,7 +56,7 @@ jobs:
     if: inputs.stage == 'issue-find-gaps'
     runs-on: ubuntu-latest
     steps:
-      - uses: gardusig/ai-coder/.github/workflows/issue-find-gaps.yml@main
+      - uses: gardusig/control-plane/.github/workflows/issue-find-gaps.yml@main
         with:
           repo: ${{ inputs.repo || github.repository }}
         secrets: inherit
@@ -65,7 +65,7 @@ jobs:
     if: inputs.stage == 'issue-create-epic'
     runs-on: ubuntu-latest
     steps:
-      - uses: gardusig/ai-coder/.github/workflows/issue-create-epic.yml@main
+      - uses: gardusig/control-plane/.github/workflows/issue-create-epic.yml@main
         with:
           repo: ${{ inputs.repo || github.repository }}
           epic_title: ${{ inputs.epic_title }}
@@ -75,7 +75,7 @@ jobs:
     if: inputs.stage == 'issue-review'
     runs-on: ubuntu-latest
     steps:
-      - uses: gardusig/ai-coder/.github/workflows/issue-review.yml@main
+      - uses: gardusig/control-plane/.github/workflows/issue-review.yml@main
         with:
           repo: ${{ inputs.repo || github.repository }}
           issue_number: ${{ inputs.issue_number }}
@@ -85,7 +85,7 @@ jobs:
     if: inputs.stage == 'issue-pick-task'
     runs-on: ubuntu-latest
     steps:
-      - uses: gardusig/ai-coder/.github/workflows/issue-pick-task.yml@main
+      - uses: gardusig/control-plane/.github/workflows/issue-pick-task.yml@main
         with:
           repo: ${{ inputs.repo || github.repository }}
         secrets: inherit
@@ -94,7 +94,7 @@ jobs:
     if: inputs.stage == 'pr-create'
     runs-on: ubuntu-latest
     steps:
-      - uses: gardusig/ai-coder/.github/workflows/pr-create.yml@main
+      - uses: gardusig/control-plane/.github/workflows/pr-create.yml@main
         with:
           repo: ${{ inputs.repo || github.repository }}
           issue_number: ${{ inputs.issue_number }}
@@ -104,7 +104,7 @@ jobs:
     if: inputs.stage == 'pr-fix'
     runs-on: ubuntu-latest
     steps:
-      - uses: gardusig/ai-coder/.github/workflows/pr-fix.yml@main
+      - uses: gardusig/control-plane/.github/workflows/pr-fix.yml@main
         with:
           repo: ${{ inputs.repo || github.repository }}
           pr_number: ${{ inputs.pr_number }}
@@ -115,7 +115,7 @@ jobs:
     if: inputs.stage == 'pr-review'
     runs-on: ubuntu-latest
     steps:
-      - uses: gardusig/ai-coder/.github/workflows/pr-review.yml@main
+      - uses: gardusig/control-plane/.github/workflows/pr-review.yml@main
         with:
           repo: ${{ inputs.repo || github.repository }}
           pr_number: ${{ inputs.pr_number }}
@@ -125,7 +125,7 @@ jobs:
     if: inputs.stage == 'pr-janitor'
     runs-on: ubuntu-latest
     steps:
-      - uses: gardusig/ai-coder/.github/workflows/pr-janitor.yml@main
+      - uses: gardusig/control-plane/.github/workflows/pr-janitor.yml@main
         with:
           repo: ${{ inputs.repo || github.repository }}
           pr_number: ${{ inputs.pr_number }}

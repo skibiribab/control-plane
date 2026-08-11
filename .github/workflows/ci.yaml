@@ -1,0 +1,152 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PR_DOCKERFILE: docker/pull-request.dockerfile
+
+jobs:
+  resolve:
+    name: Resolve versions
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      base_version: ${{ steps.meta.outputs.base_version }}
+    steps:
+      - id: checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+        timeout-minutes: 3
+      - id: buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
+        timeout-minutes: 3
+      - id: meta
+        name: docker — resolve
+        timeout-minutes: 3
+        run: |
+          docker build -f "${PR_DOCKERFILE}" --target resolve -t ci-pr-resolve .
+          BASE_VERSION="$(bash scripts/pull-request/host-last-published-version.sh)"
+          docker run --rm \
+            -e GITHUB_OUTPUT \
+            -e BASE_VERSION="${BASE_VERSION}" \
+            -v "${GITHUB_OUTPUT}:${GITHUB_OUTPUT}" \
+            ci-pr-resolve
+      - id: cleanup
+        name: docker — cleanup
+        timeout-minutes: 3
+        run: docker image prune -af >/dev/null && docker builder prune -af >/dev/null
+
+  version-check:
+    name: Version check
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - id: checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        timeout-minutes: 3
+      - id: buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
+        timeout-minutes: 3
+      - id: version-check
+        name: docker build — version-check
+        timeout-minutes: 6
+        env:
+          BASE_VERSION: ${{ needs.resolve.outputs.base_version }}
+        run: |
+          docker build -f "${PR_DOCKERFILE}" --target version-check \
+            --build-arg "BASE_VERSION=${BASE_VERSION}" .
+      - id: cleanup
+        name: docker — cleanup
+        timeout-minutes: 3
+        run: docker image prune -af >/dev/null && docker builder prune -af >/dev/null
+
+  unit-test:
+    name: Unit tests (bats)
+    needs: version-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - id: checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        timeout-minutes: 3
+      - id: buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
+        timeout-minutes: 3
+      - id: unit-test
+        name: docker build — unit-test
+        timeout-minutes: 9
+        run: docker build -f "${PR_DOCKERFILE}" --target unit-test .
+      - id: cleanup
+        name: docker — cleanup
+        timeout-minutes: 3
+        run: docker image prune -af >/dev/null && docker builder prune -af >/dev/null
+
+  runtime-build:
+    name: Runtime image (${{ matrix.variant }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 27
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [base, rust, node, python, cpp, go, media, java]
+    steps:
+      - id: checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        timeout-minutes: 3
+      - id: buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
+        timeout-minutes: 3
+      - id: runtime-build
+        name: docker build — ${{ matrix.variant }}
+        timeout-minutes: 15
+        run: |
+          docker build -f docker/${{ matrix.variant }}.dockerfile \
+            -t ci-runtime-${{ matrix.variant }} .
+      - id: runtime-smoke
+        name: runtime smoke — ${{ matrix.variant }}
+        timeout-minutes: 8
+        run: |
+          set -euo pipefail
+          bash scripts/release/runtime-smoke.sh \
+            "ci-runtime-${{ matrix.variant }}" "${{ matrix.variant }}"
+      - id: cleanup
+        name: docker — cleanup image + cache
+        timeout-minutes: 6
+        run: |
+          docker image prune -af >/dev/null
+          docker builder prune -af >/dev/null
+
+  integration:
+    name: Integration smoke
+    needs: [resolve, version-check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - id: checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        timeout-minutes: 3
+      - id: buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
+        timeout-minutes: 3
+      - id: integration-build
+        name: docker build — integration smoke
+        timeout-minutes: 9
+        run: |
+          docker build -f "${PR_DOCKERFILE}" --target integration-smoke .
+      - id: cleanup
+        name: docker — cleanup
+        timeout-minutes: 3
+        run: docker image prune -af >/dev/null && docker builder prune -af >/dev/null

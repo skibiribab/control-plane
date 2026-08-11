@@ -30,7 +30,7 @@ permissions:
 jobs:
   janitor:
     runs-on: ubuntu-latest
-    if: github.repository != 'gardusig/ai-coder'
+    if: github.repository != 'gardusig/control-plane'
     steps:
       - name: Checkout target repo
         uses: actions/checkout@v4
