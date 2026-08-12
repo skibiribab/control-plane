@@ -6,7 +6,7 @@ build the Docker images to smoke changes.
 ## Prerequisites
 
 - `bash`, `git`, `docker`.
-- Optional: `bats-core` to run `tests/*.bats` locally.
+- Optional: `bats-core` to run `src/src/tests/*.bats` locally.
 
 ## Repo commands
 
@@ -20,8 +20,8 @@ build the Docker images to smoke changes.
 ## Local image builds
 
 ```bash
-docker build -f docker/base.dockerfile -t cli-base .
-docker build -f docker/rust.dockerfile -t cli-rust .
+docker build -f src/docker/base.dockerfile -t cli-base .
+docker build -f src/docker/rust.dockerfile -t cli-rust .
 docker build -f docker/node.dockerfile -t cli-node .
 docker build -f docker/python.dockerfile -t cli-python .
 docker build -f docker/media.dockerfile -t cli-media .
@@ -44,10 +44,10 @@ docker builder prune -af
 
 ## Tests
 
-`tests/*.bats` (bats-core) exercise the dispatcher, lib helpers, and a few
+`src/src/tests/*.bats` (bats-core) exercise the dispatcher, lib helpers, and a few
 file-type lints. Run them in the `unit-test` stage of
-`docker/pull-request.dockerfile`:
+`src/docker/pull-request.dockerfile`:
 
 ```bash
-docker build -f docker/pull-request.dockerfile --target unit-test .
+docker build -f src/docker/pull-request.dockerfile --target unit-test .
 ```

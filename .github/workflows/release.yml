@@ -16,7 +16,7 @@ permissions:
   contents: write
 
 env:
-  PR_DOCKERFILE: docker/pull-request.dockerfile
+  PR_DOCKERFILE: src/docker/pull-request.dockerfile
   RUNTIME_IMAGE: binarylifter/gardusig-cli
 
 jobs:
@@ -76,7 +76,7 @@ jobs:
         run: |
           set -euo pipefail
           for variant in base rust node python cpp go media java; do
-            file="docker/${variant}.dockerfile"
+            file="src/docker/${variant}.dockerfile"
             tag="${RUNTIME_IMAGE}:${CLI_VERSION}-${variant}"
             if [[ "${variant}" == "base" ]]; then
               tag="${RUNTIME_IMAGE}:${CLI_VERSION}"

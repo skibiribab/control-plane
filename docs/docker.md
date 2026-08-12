@@ -4,8 +4,8 @@ This repo owns two kinds of Docker artifacts with clearly separated purposes:
 
 | Kind | File | Purpose | For whom |
 | --- | --- | --- | --- |
-| **Usable runtime images** | `docker/{base,rust,node,python,media,cpp,go,java}.dockerfile` | `cli` (bash) plus the tools for each domain | Everyone (pull and run) |
-| **Development pipeline** | `docker/pull-request.dockerfile` | Build the bash CLI, run bats tests, publish images | This repo's CI only |
+| **Usable runtime images** | `src/docker/{base,rust,node,python,media,cpp,go,java}.dockerfile` | `cli` (bash) plus the tools for each domain | Everyone (pull and run) |
+| **Development pipeline** | `src/docker/pull-request.dockerfile` | Build the bash CLI, run bats tests, publish images | This repo's CI only |
 
 ## Usable images (`binarylifter/gardusig-cli`)
 
@@ -53,7 +53,7 @@ In GitHub Actions:
 
 Every dependency — Alpine base, apk packages (exact versions), static
 binaries, npm/pip packages, and the bash CLI itself — is version-pinned
-in `docker/runtime/versions.env`. Tags are versioned only.
+in `src/src/docker/runtime/versions.env`. Tags are versioned only.
 
 Images are **multi-stage**: a `src` stage does `COPY . .` (whole context), and
 the `final` stage copies only the relevant artifacts (`/cli /lib /commands
@@ -65,13 +65,13 @@ allowlist, enforced by `cli ignore lint .`.
 Build locally (from the repo checkout):
 
 ```bash
-docker build -f docker/base.dockerfile -t cli-base .
-docker build -f docker/rust.dockerfile -t cli-rust .
+docker build -f src/docker/base.dockerfile -t cli-base .
+docker build -f src/docker/rust.dockerfile -t cli-rust .
 bash scripts/release/runtime-smoke.sh cli-base base
 bash scripts/release/runtime-smoke.sh cli-rust rust
 ```
 
-## Development pipeline (`docker/pull-request.dockerfile`)
+## Development pipeline (`src/docker/pull-request.dockerfile`)
 
 Used by PR and release CI. Targets: `resolve`, `resolve-release`,
 `version-check`, `unit-test` (bats), `integration-smoke`,

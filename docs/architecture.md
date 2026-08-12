@@ -15,7 +15,7 @@ lib/             shared bash libraries (no command logic)
   report.sh      ok/skipped/fail/result (text + JSON)
   files.sh       iter_files / noun_args / collect_files
   media.sh       pdf/png/video lint/scan/compress helpers
-commands/        one file per noun, grouped by owning image
+src/commands/    one file per noun, grouped by owning image
   base/          sh.sh dockerfile.sh structure.sh ignore.sh git.sh gh.sh docker.sh opencode.sh integration.sh
   rust/ node/ python/ media/ cpp/ go/ java/
 docker/          Dockerfiles (multi-stage) + runtime/install-*.sh + versions.env
@@ -24,7 +24,7 @@ scripts/         build/release/PR pipeline helpers (bash)
 
 ## Dispatch
 
-`cli <noun> <verb>` → `cli` sources every `commands/*/<noun>.sh`, then calls
+`cli <noun> <verb>` → `cli` sources every `src/commands/*/<noun>.sh`, then calls
 `cli_<noun>_main "$@"`. A noun file's `cli_<noun>_main` switches on the verb
 (`lint`/`test`/`scan`/`compress` or a passthrough command).
 
@@ -42,7 +42,7 @@ scripts/         build/release/PR pipeline helpers (bash)
 
 Alpine base (version-pinned) → `docker/{base,rust,node,python,media,cpp,go,java}.dockerfile`.
 Multi-stage: a `src` stage does `COPY . .` (whole context); the `final` stage
-installs the toolchain (`docker/runtime/install-*.sh`, pinned in `versions.env`)
+installs the toolchain (`src/docker/runtime/install-*.sh`, pinned in `versions.env`)
 and copies only the relevant artifacts (`/cli /lib /commands /VERSION`) to
 `/opt/cli`, then symlinks `/usr/local/bin/cli`. The binary exists only inside
 the built image; the repo carries source only.

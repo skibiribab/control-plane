@@ -43,7 +43,7 @@ Alpine-based, versioned tags (no `latest`):
 | `:1.2.0-go` | golang | `go lint/test` |
 | `:1.2.0-java` | OpenJDK 21/Maven/Gradle | `java lint/test` |
 
-Every dependency — Alpine base digest, apk packages, static binaries, npm/pip packages — is pinned in `docker/runtime/versions.env`.
+Every dependency — Alpine base digest, apk packages, static binaries, npm/pip packages — is pinned in `src/src/docker/runtime/versions.env`.
 
 ## Stages (the control plane)
 
@@ -108,19 +108,20 @@ The caller forwards your secret to the reusable via `secrets: inherit`; the reus
 ## Layout
 
 ```text
-cli/                  the CLI entrypoint
-commands/             cli <noun> subcommands
-lib/                  shared command libs + validators
-docker/               image variants + runtime installers
-scripts/              pull-request + release build helpers
-tests/                bats tests
-docs/                 docs
+src/
+  cli/                  the CLI entrypoint
+  commands/             cli <noun> subcommands
+  lib/                  shared command libs + validators
+  docker/               image variants + runtime installers
+  scripts/              pull-request + release build helpers
+  tests/                bats tests
+docs/                   docs
 .github/workflows/
-  issue-*.yml         reusable dispatch stages
-  pr-*.yml            reusable dispatch stages
-  caller-template.yml thin caller for target repos
-  ci.yaml             PR checks
-  publish.yaml        release (docker + GitHub)
+  issue-*.yml           reusable dispatch stages
+  pr-*.yml              reusable dispatch stages
+  caller-template.yml   thin caller for target repos
+  test.yml              PR checks
+  release.yml           release (docker + GitHub)
 ```
 
 ## Build plan
