@@ -53,7 +53,7 @@ In GitHub Actions:
 
 Every dependency — Alpine base, apk packages (exact versions), static
 binaries, npm/pip packages, and the bash CLI itself — is version-pinned
-in `src/docker/runtime/versions.env`. Tags are versioned only.
+in `docker/runtime/versions.env`. Tags are versioned only.
 
 Images are **multi-stage**: a `src` stage does `COPY . .` (whole context), and
 the `final` stage copies only the relevant artifacts (`/cli /lib /commands

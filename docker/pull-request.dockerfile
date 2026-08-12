@@ -1,7 +1,7 @@
 # Pull-request / development pipeline — build the bash CLI, run bats tests, and
 # publish runtime images to Docker Hub. Not meant for end users; the usable
-# runtime images live in src/docker/{base,rust,node,python,media,cpp,go,java}.dockerfile.
-# docker build -f src/docker/pull-request.dockerfile --target <stage> .
+# runtime images live in docker/{base,rust,node,python,media,cpp,go,java}.dockerfile.
+# docker build -f docker/pull-request.dockerfile --target <stage> .
 
 FROM alpine:3.21 AS base
 
