@@ -33,6 +33,9 @@ Model: cli <noun> <verb> [args...]  (noun = extension | language | concept)
 
   cli <noun> lint|test|scan|compress   file-type and language checks
   cli <noun> [args...]                 git/gh/docker/opencode/etc.
+  cli tree generate|validate [PATH]    integrity manifest (sha256 + size)
+  cli repo lint [PATH]                 composite markdown/notes checks
+  cli repo publish-tag                 timestamp tag + GitHub release
 
 Nouns (file types):
   sh lint · dockerfile lint · structure lint · md lint · json lint

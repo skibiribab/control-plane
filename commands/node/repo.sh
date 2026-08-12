@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# cli repo lint — composite markdown/notes validation (node image).
-# Runs md lint + md link + md table + json lint + structure lint +
-# whitespace lint over one PATH.
+# cli repo lint|publish-tag — composite validation + release tagging (node image).
 set -euo pipefail
 
 cli_repo_help() {
   cat <<'EOF'
 cli repo lint [PATH] [--config FILE] [--json] — run all markdown/notes checks:
   md lint · md link · md table · json lint · structure lint · whitespace lint
+cli repo publish-tag — create a unique timestamp tag, push it, and verify it
+             landed at the latest commit.
 Runs in the -node image. PATH: a single file or a subtree root (default ".").
 EOF
 }
@@ -15,11 +15,14 @@ EOF
 cli_repo_main() {
   case "${1:-}" in
     -h|--help) cli_repo_help; return 0 ;;
+    lint) shift ;;
+    publish-tag)
+      require_tool node
+      node "$CLI_ROOT/lib/validators/publish-tag.js" "$PWD" publish
+      return 0
+      ;;
+    *) cli_die "usage: cli repo lint [PATH] [--config FILE] [--json] | cli repo publish-tag" ;;
   esac
-  if [[ "${1:-}" != "lint" ]]; then
-    cli_die "usage: cli repo lint [PATH] [--config FILE] [--json]"
-  fi
-  shift
 
   # shellcheck source=/dev/null
   source "${CLI_ROOT}/commands/node/md.sh"

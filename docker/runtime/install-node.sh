@@ -7,7 +7,8 @@ source "$(dirname "${BASH_SOURCE[0]}")/versions.env"
 apk add --no-cache \
   "nodejs=${APK_NODEJS}" \
   "npm=${APK_NPM}" \
-  "jq=${APK_JQ}"
+  "jq=${APK_JQ}" \
+  "qpdf=${APK_QPDF}"
 
 npm install --global --no-audit --no-fund \
   "markdownlint-cli@${MARKDOWNLINT_CLI_VERSION}"
