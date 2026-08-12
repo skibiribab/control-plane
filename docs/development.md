@@ -20,8 +20,8 @@ build the Docker images to smoke changes.
 ## Local image builds
 
 ```bash
-docker build -f src/docker/base.dockerfile -t cli-base .
-docker build -f src/docker/rust.dockerfile -t cli-rust .
+docker build -f docker/base.dockerfile -t cli-base .
+docker build -f docker/rust.dockerfile -t cli-rust .
 docker build -f docker/node.dockerfile -t cli-node .
 docker build -f docker/python.dockerfile -t cli-python .
 docker build -f docker/media.dockerfile -t cli-media .
@@ -46,8 +46,8 @@ docker builder prune -af
 
 `src/src/tests/*.bats` (bats-core) exercise the dispatcher, lib helpers, and a few
 file-type lints. Run them in the `unit-test` stage of
-`src/docker/pull-request.dockerfile`:
+`docker/pull-request.dockerfile`:
 
 ```bash
-docker build -f src/docker/pull-request.dockerfile --target unit-test .
+docker build -f docker/pull-request.dockerfile --target unit-test .
 ```

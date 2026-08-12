@@ -1,5 +1,5 @@
-# cpp runtime image — binarylifter/gardusig-cli:${version}-cpp.
-# base + gcc/g++/make/cmake/clang-format for C/C++ lint/test.
+# go runtime image — binarylifter/gardusig-cli:${version}-go.
+# base + golang toolchain for `cli go lint` / `cli go test`.
 
 FROM alpine:3.21 AS src
 WORKDIR /src
@@ -7,12 +7,12 @@ COPY . .
 
 FROM alpine:3.21 AS final
 
-ENV CLI_RUNTIME=cpp
+ENV CLI_RUNTIME=go
 
-COPY --from=src /src/src/docker/runtime /install/
+COPY --from=src /src/docker/runtime /install/
 RUN apk add --no-cache bash \
     && bash /install/install-base.sh \
-    && bash /install/install-cpp.sh
+    && bash /install/install-go.sh
 
 WORKDIR /workspace
 COPY --from=src /src/src/cli /opt/cli/cli

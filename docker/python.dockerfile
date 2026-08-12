@@ -1,5 +1,5 @@
-# rust runtime image — binarylifter/gardusig-cli:${version}-rust.
-# base + rust/cargo toolchain + lychee (url).
+# python runtime image — binarylifter/gardusig-cli:${version}-python.
+# base + python3/pip + codespell, yamllint.
 
 FROM alpine:3.21 AS src
 WORKDIR /src
@@ -7,12 +7,12 @@ COPY . .
 
 FROM alpine:3.21 AS final
 
-ENV CLI_RUNTIME=rust
+ENV CLI_RUNTIME=python
 
-COPY --from=src /src/src/docker/runtime /install/
+COPY --from=src /src/docker/runtime /install/
 RUN apk add --no-cache bash \
     && bash /install/install-base.sh \
-    && bash /install/install-rust.sh
+    && bash /install/install-python.sh
 
 WORKDIR /workspace
 COPY --from=src /src/src/cli /opt/cli/cli

@@ -31,7 +31,7 @@ Triggered by `push` of a version tag (`X.Y.Z`):
   images and prunes.
 - `publish-github` creates the GitHub release.
 
-`ci-push` / `ci-smoke` / `ci-github-release` are `src/docker/pull-request.dockerfile`
+`ci-push` / `ci-smoke` / `ci-github-release` are `docker/pull-request.dockerfile`
 targets running from a `docker:27-cli` image with the daemon socket mounted.
 
 ## Version gate

@@ -21,8 +21,8 @@ gh_repo_root() {
   cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd
 }
 
-PR_DOCKERFILE="${PR_DOCKERFILE:-src/docker/pull-request.dockerfile}"
-RELEASE_DOCKERFILE="${RELEASE_DOCKERFILE:-src/docker/base.dockerfile}"
+PR_DOCKERFILE="${PR_DOCKERFILE:-docker/pull-request.dockerfile}"
+RELEASE_DOCKERFILE="${RELEASE_DOCKERFILE:-docker/base.dockerfile}"
 RUNTIME_IMAGE="${RUNTIME_IMAGE:-binarylifter/gardusig-cli}"
 
 # shellcheck disable=SC2034  # consumed by release/pull-request scripts
@@ -30,14 +30,14 @@ RUNTIME_VARIANTS=(base rust node python cpp go media java)
 
 runtime_variant_dockerfile() {
   case "$1" in
-    base) echo "src/docker/base.dockerfile" ;;
-    rust) echo "src/docker/rust.dockerfile" ;;
-    node) echo "src/docker/node.dockerfile" ;;
-    python) echo "src/docker/python.dockerfile" ;;
-    cpp) echo "src/docker/cpp.dockerfile" ;;
-    go) echo "src/docker/go.dockerfile" ;;
-    media) echo "src/docker/media.dockerfile" ;;
-    java) echo "src/docker/java.dockerfile" ;;
+    base) echo "docker/base.dockerfile" ;;
+    rust) echo "docker/rust.dockerfile" ;;
+    node) echo "docker/node.dockerfile" ;;
+    python) echo "docker/python.dockerfile" ;;
+    cpp) echo "docker/cpp.dockerfile" ;;
+    go) echo "docker/go.dockerfile" ;;
+    media) echo "docker/media.dockerfile" ;;
+    java) echo "docker/java.dockerfile" ;;
     *) echo "unknown runtime variant: $1" >&2; exit 2 ;;
   esac
 }

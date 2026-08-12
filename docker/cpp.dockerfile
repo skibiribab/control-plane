@@ -1,6 +1,5 @@
-# media runtime image — binarylifter/gardusig-cli:${version}-media.
-# base + ffmpeg (video scan/compress) + imagemagick (image lint) +
-# poppler-utils (pdf lint).
+# cpp runtime image — binarylifter/gardusig-cli:${version}-cpp.
+# base + gcc/g++/make/cmake/clang-format for C/C++ lint/test.
 
 FROM alpine:3.21 AS src
 WORKDIR /src
@@ -8,12 +7,12 @@ COPY . .
 
 FROM alpine:3.21 AS final
 
-ENV CLI_RUNTIME=media
+ENV CLI_RUNTIME=cpp
 
-COPY --from=src /src/src/docker/runtime /install/
+COPY --from=src /src/docker/runtime /install/
 RUN apk add --no-cache bash \
     && bash /install/install-base.sh \
-    && bash /install/install-media.sh
+    && bash /install/install-cpp.sh
 
 WORKDIR /workspace
 COPY --from=src /src/src/cli /opt/cli/cli

@@ -9,7 +9,7 @@ FROM alpine:3.21 AS final
 
 ENV CLI_RUNTIME=java
 
-COPY --from=src /src/src/docker/runtime /install/
+COPY --from=src /src/docker/runtime /install/
 RUN apk add --no-cache bash \
     && bash /install/install-base.sh \
     && bash /install/install-java.sh

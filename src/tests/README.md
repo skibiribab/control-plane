@@ -12,5 +12,5 @@ bats-core tests exercising the bash CLI.
 smoke (`scripts/release/runtime-smoke.sh`): `good.yaml`, `bad.yaml`,
 `good.json`, `README.md`, `Dockerfile`, `ok.sh`.
 
-Run in the CI pipeline via `docker build -f src/docker/pull-request.dockerfile --target unit-test .`
+Run in the CI pipeline via `docker build -f docker/pull-request.dockerfile --target unit-test .`
 (`scripts/pull-request/unit-test.sh` → `bats tests`).

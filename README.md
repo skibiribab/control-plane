@@ -43,7 +43,7 @@ Alpine-based, versioned tags (no `latest`):
 | `:1.2.0-go` | golang | `go lint/test` |
 | `:1.2.0-java` | OpenJDK 21/Maven/Gradle | `java lint/test` |
 
-Every dependency — Alpine base digest, apk packages, static binaries, npm/pip packages — is pinned in `src/src/docker/runtime/versions.env`.
+Every dependency — Alpine base digest, apk packages, static binaries, npm/pip packages — is pinned in `src/docker/runtime/versions.env`.
 
 ## Stages (the control plane)
 
@@ -112,9 +112,9 @@ src/
   cli/                  the CLI entrypoint
   commands/             cli <noun> subcommands
   lib/                  shared command libs + validators
-  docker/               image variants + runtime installers
   scripts/              pull-request + release build helpers
   tests/                bats tests
+docker/                 image variants + runtime installers
 docs/                   docs
 .github/workflows/
   issue-*.yml           reusable dispatch stages

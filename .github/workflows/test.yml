@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 env:
-  PR_DOCKERFILE: src/docker/pull-request.dockerfile
+  PR_DOCKERFILE: docker/pull-request.dockerfile
 
 jobs:
   resolve:
@@ -113,7 +113,7 @@ jobs:
         name: docker build — ${{ matrix.variant }}
         timeout-minutes: 15
         run: |
-          docker build -f src/docker/${{ matrix.variant }}.dockerfile \
+          docker build -f docker/${{ matrix.variant }}.dockerfile \
             -t ci-runtime-${{ matrix.variant }} .
       - id: runtime-smoke
         name: runtime smoke — ${{ matrix.variant }}
