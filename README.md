@@ -7,6 +7,14 @@ Two halves, one repo:
 - **CLI** — runs in Docker images and hosts the shared lint / validation / ops commands that every repo consumes.
 - **Stages** — reusable `workflow_call` workflows (the control plane) that act on *other* repos. This repo never acts on itself (self-guard).
 
+## Focus
+
+Three pillars:
+
+- **CLI** — `cli <noun> <verb>` commands (lint / validation / ops) shipped in Docker images.
+- **Stages** — reusable dispatch workflows (issue-* → pr-* → janitor) that act on other repos.
+- **Docker + release** — the runtime images and tag-driven releases.
+
 ## CLI
 
 A lean, bash-first CLI for workflow automation, repository checks, and release orchestration. Every command is a thin wrapper around an existing tool; each command runs in the Docker image that owns its toolchain.
