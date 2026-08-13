@@ -5,6 +5,7 @@ name: Publish
 # auto-tag job only tags the merged VERSION (bumps only as a fallback).
 
 on:
+  workflow_dispatch:
   push:
     tags:
       - "[0-9]*"
