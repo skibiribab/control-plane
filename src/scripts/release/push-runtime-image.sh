@@ -4,9 +4,8 @@ set -euo pipefail
 # shellcheck source=/dev/null
 source "$(dirname "${BASH_SOURCE[0]}")/../_common.sh"
 
-version="${CLI_VERSION:?CLI_VERSION required}"
-
 _push_runtime_image() {
+  local version="${CLI_VERSION:?CLI_VERSION required}"
   for variant in "${RUNTIME_VARIANTS[@]}"; do
     docker push "$(runtime_variant_tag "$version" "$variant")"
   done
