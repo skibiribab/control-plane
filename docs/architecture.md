@@ -5,7 +5,7 @@ tools. There is no application framework and no Python.
 
 ## Layout
 
-```
+```text
 cli              dispatcher: resolves the noun, sources its file(s), runs cli_<noun>_main
 lib/             shared bash libraries (no command logic)
   common.sh      logging, exit codes, version (VERSION file)

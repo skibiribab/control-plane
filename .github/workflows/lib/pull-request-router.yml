@@ -32,7 +32,7 @@ permissions:
 
 jobs:
   pipeline:
-    if: github.repository != 'gardusig/control-plane'
+    if: github.repository != 'skibiribab/control-plane'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:

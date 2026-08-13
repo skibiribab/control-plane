@@ -1,5 +1,5 @@
-# python runtime image — binarylifter/gardusig-cli:${version}-python.
-# base + python3/pip + codespell, yamllint.
+# python runtime image — skibiribab/cli:${version}-python.
+# base + python3 + yamllint.
 
 FROM alpine:3.21 AS src
 WORKDIR /src

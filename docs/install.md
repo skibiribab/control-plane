@@ -2,15 +2,15 @@
 
 The CLI ships **in Docker images** (bash, no Python). There is no pip/PyPI
 package. Versioned tags are published to Docker Hub as
-`binarylifter/gardusig-cli`.
+`skibiribab/cli`.
 
 ## Docker (recommended)
 
 Pull the image for the toolchain you need and run `cli` against a mounted repo:
 
 ```bash
-alias cli='docker run --rm -v "$PWD:/repo" -w /repo binarylifter/gardusig-cli:1.2.0'
-alias cli-node='docker run --rm -v "$PWD:/repo" -w /repo binarylifter/gardusig-cli:1.2.0-node'
+alias cli='docker run --rm -v "$PWD:/repo" -w /repo skibiribab/cli:1.2.0'
+alias cli-node='docker run --rm -v "$PWD:/repo" -w /repo skibiribab/cli:1.2.0-node'
 
 cli git status
 cli-node md lint .
@@ -54,7 +54,7 @@ In Docker, pass with `-e`:
 
 ```bash
 docker run --rm -e GITHUB_TOKEN="$GITHUB_TOKEN" -v "$PWD:/repo" -w /repo \
-  binarylifter/gardusig-cli:1.2.0 gh issue pick
+  skibiribab/cli:1.2.0 gh issue pick
 ```
 
 ## Using gh locally

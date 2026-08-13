@@ -516,9 +516,9 @@ gh_release() {
   gh_require
   local tag="${1:?tag required}" version="${2:?version required}"
   local image
-  image="$(env_or RUNTIME_IMAGE binarylifter/gardusig-cli)"
+  image="$(env_or RUNTIME_IMAGE skibiribab/cli)"
   gh release create "$tag" \
-    --title "gardusig-cli ${version}" \
+    --title "skibiribab-cli ${version}" \
     --notes "Docker images: ${image}:${version} (+ -base/-rust/-node/-python/-cpp/-go/-media/-java)"
   cli_ok "created GitHub release ${tag}"
 }

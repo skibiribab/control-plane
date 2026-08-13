@@ -2,7 +2,7 @@
 # Tests for the cli dispatcher + thin command wrappers that run in any image.
 
 CLI="${BATS_TEST_DIRNAME}/../cli"
-ROOT="${BATS_TEST_DIRNAME}/.."
+ROOT="${BATS_TEST_DIRNAME}/../.."
 
 @test "cli --version prints VERSION file" {
   run "$CLI" --version
@@ -69,7 +69,7 @@ ROOT="${BATS_TEST_DIRNAME}/.."
   run "$CLI" md lint .
   [ "$status" -eq 1 ]
   [[ "$output" == *"node image"* ]]
-  [[ "$output" == *"binarylifter/gardusig-cli:"* ]]
+  [[ "$output" == *"skibiribab/cli:"* ]]
 }
 
 @test "missing docker daemon recommends the socket" {

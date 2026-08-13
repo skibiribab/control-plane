@@ -18,12 +18,12 @@ set -euo pipefail
 : "${DOCKER_PULL_MAX_DELAY:=45}"
 
 gh_repo_root() {
-  cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd
+  cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd
 }
 
 PR_DOCKERFILE="${PR_DOCKERFILE:-docker/pull-request.dockerfile}"
 RELEASE_DOCKERFILE="${RELEASE_DOCKERFILE:-docker/base.dockerfile}"
-RUNTIME_IMAGE="${RUNTIME_IMAGE:-binarylifter/gardusig-cli}"
+RUNTIME_IMAGE="${RUNTIME_IMAGE:-skibiribab/cli}"
 
 # shellcheck disable=SC2034  # consumed by release/pull-request scripts
 RUNTIME_VARIANTS=(base rust node python cpp go media java)
@@ -146,6 +146,30 @@ stage_compare_versions() {
   done
   echo "version ${head} is not greater than ${base}" >&2
   return 1
+}
+
+# stage_bump_minor <v> — print <major>.<minor+1>.0 (patch reset).
+stage_bump_minor() {
+  local v="${1:?version required}"
+  local major="${v%%.*}"
+  local rest="${v#*.}"
+  local minor="${rest%%.*}"
+  printf '%s.%d.0\n' "$major" "$((minor + 1))"
+}
+
+# stage_max_published_docker_version — greatest bare X.Y.Z published for
+# RUNTIME_IMAGE on Docker Hub (paginated); empty when none. Requires curl.
+stage_max_published_docker_version() {
+  local image="${RUNTIME_IMAGE:-skibiribab/cli}"
+  local url="https://hub.docker.com/v2/repositories/${image}/tags?page_size=100"
+  local names=""
+  while [[ -n "$url" && "$url" != "null" ]]; do
+    local body
+    body="$(curl -fsSL --max-time 20 "$url" 2>/dev/null)" || { echo ""; return 1; }
+    names+="$(printf '%s\n' "$body" | grep -oE '"name":"[^"]+"' | sed -E 's/"name":"([^"]+)"/\1/')"$'\n'
+    url="$(printf '%s\n' "$body" | grep -oE '"next":"[^"]+"' | sed -E 's/"next":"([^"]+)"/\1/')"
+  done
+  printf '%s\n' "$names" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V -r | head -n1
 }
 
 docker_registry_has_tag() {

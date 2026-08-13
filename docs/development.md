@@ -25,8 +25,8 @@ docker build -f docker/rust.dockerfile -t cli-rust .
 docker build -f docker/node.dockerfile -t cli-node .
 docker build -f docker/python.dockerfile -t cli-python .
 docker build -f docker/media.dockerfile -t cli-media .
-bash scripts/release/runtime-smoke.sh cli-base base
-bash scripts/release/runtime-smoke.sh cli-node node
+bash src/scripts/release/runtime-smoke.sh cli-base base
+bash src/scripts/release/runtime-smoke.sh cli-node node
 ```
 
 Clean up after yourself so the machine doesn't fill up:

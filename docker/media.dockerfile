@@ -1,4 +1,4 @@
-# media runtime image — binarylifter/gardusig-cli:${version}-media.
+# media runtime image — skibiribab/cli:${version}-media.
 # base + ffmpeg (video scan/compress) + imagemagick (image lint) +
 # poppler-utils (pdf lint).
 

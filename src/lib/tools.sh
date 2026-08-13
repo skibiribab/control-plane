@@ -11,7 +11,7 @@ tool_image() {
   case "$1" in
     lychee|rustc|cargo) echo "rust" ;;
     node|npm|npx|markdownlint|remark|mermaid|jq|tsc|eslint) echo "node" ;;
-    python3|pip3|pip|codespell|yamllint|pytest) echo "python" ;;
+    python3|yamllint|pytest) echo "python" ;;
     ffmpeg|ffprobe|identify|pdfinfo) echo "media" ;;
     gcc|g++|cc|make|cmake|clang|clang-format) echo "cpp" ;;
     go|gofmt) echo "go" ;;
@@ -41,7 +41,6 @@ node	npm
 node	tsc
 node	eslint
 python	yamllint
-python	codespell
 python	python3
 python	pytest
 media	ffmpeg
@@ -68,7 +67,7 @@ require_tool() {
   fi
   if [[ "$image" != "base" ]]; then
     cli_die "${tool} is required but not in this image (${CLI_RUNTIME}). " \
-      "Use the ${image} image: binarylifter/gardusig-cli:$(cli_version)-${image}"
+      "Use the ${image} image: skibiribab/cli:$(cli_version)-${image}"
   fi
   cli_die "${tool} is required but not in this image (${CLI_RUNTIME})."
 }

@@ -27,26 +27,28 @@ RUN . /workspace/docker/runtime/versions.env \
 
 FROM base AS resolve
 
-ENTRYPOINT ["bash", "scripts/pull-request/resolve-version.sh"]
+ENTRYPOINT ["bash", "src/scripts/pull-request/resolve-version.sh"]
 
 FROM base AS resolve-release
 
-ENTRYPOINT ["bash", "scripts/release/resolve-tag-version.sh"]
+ENTRYPOINT ["bash", "src/scripts/release/resolve-tag-version.sh"]
 
 FROM base AS version-check
 
-ARG BASE_VERSION=
-ENV BASE_VERSION=${BASE_VERSION}
-RUN bash scripts/pull-request/version-check.sh
+ARG GIT_VERSION=
+ARG DOCKER_VERSION=
+ENV GIT_VERSION=${GIT_VERSION} \
+    DOCKER_VERSION=${DOCKER_VERSION}
+RUN bash src/scripts/pull-request/version-check.sh
 
 FROM base AS unit-test
 
-RUN bash scripts/pull-request/unit-test.sh
+RUN bash src/scripts/pull-request/unit-test.sh
 
 FROM base AS integration-smoke
 
-RUN ln -sf /workspace/cli /usr/local/bin/cli \
-    && bash scripts/pull-request/integration-test.sh
+RUN ln -sf /workspace/src/cli /usr/local/bin/cli \
+    && bash src/scripts/pull-request/integration-test.sh
 
 FROM docker:27-cli AS ci-tools
 
@@ -68,10 +70,10 @@ RUN . /workspace/docker/runtime/versions.env \
       "curl=${APK_CURL}"
 
 FROM ci-tools AS ci-push
-ENTRYPOINT ["bash", "scripts/release/push-runtime-image.sh"]
+ENTRYPOINT ["bash", "src/scripts/release/push-runtime-image.sh"]
 
 FROM ci-tools AS ci-smoke
-ENTRYPOINT ["bash", "scripts/release/smoke-runtime-image.sh"]
+ENTRYPOINT ["bash", "src/scripts/release/publish-smoke.sh"]
 
 FROM ci-tools AS ci-github-release
-ENTRYPOINT ["bash", "scripts/release/create-github-release.sh"]
+ENTRYPOINT ["bash", "src/scripts/release/create-github-release.sh"]

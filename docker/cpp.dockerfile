@@ -1,4 +1,4 @@
-# cpp runtime image — binarylifter/gardusig-cli:${version}-cpp.
+# cpp runtime image — skibiribab/cli:${version}-cpp.
 # base + gcc/g++/make/cmake/clang-format for C/C++ lint/test.
 
 FROM alpine:3.21 AS src

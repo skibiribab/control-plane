@@ -1,4 +1,4 @@
-# node runtime image — binarylifter/gardusig-cli:${version}-node.
+# node runtime image — skibiribab/cli:${version}-node.
 # base + node/npm + markdownlint-cli + jq.
 
 FROM alpine:3.21 AS src

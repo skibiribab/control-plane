@@ -7,6 +7,9 @@ CLI_VERSION_FILE="${CLI_ROOT}/VERSION"
 cli_version() {
   if [[ -f "${CLI_VERSION_FILE}" ]]; then
     tr -d '[:space:]' < "${CLI_VERSION_FILE}"
+  elif [[ -f "${CLI_ROOT}/../VERSION" ]]; then
+    # Source checkout: VERSION lives at the repo root (not src/).
+    tr -d '[:space:]' < "${CLI_ROOT}/../VERSION"
   else
     echo "unknown"
   fi

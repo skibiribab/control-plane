@@ -2,49 +2,56 @@
 
 Two workflows, Docker-only (no PyPI/pip — the bash CLI ships in runtime images):
 
-- **CI** (`.github/workflows/ci.yaml`) — runs on pull requests.
-- **Publish** (`.github/workflows/publish.yaml`) — runs on new version tags.
+- **CI** (`.github/workflows/test.yml`) — runs on pull requests: runs as many validations as possible, never publishes.
+- **Publish** (`.github/workflows/release.yml`) — runs on push to `main` (auto-versions + tags) and on version tags (build + push + publish).
 
-## CI (`.github/workflows/ci.yaml`) — PRs
+## CI (`test.yml`) — pull requests
 
-Builds and lints everything, **never publishes**.
+Every check below runs per PR; nothing is published. The version upgrade is
+**embedded in the PR**: the gate fails unless `VERSION` is bumped above both
+sources, so `main` merges release-ready.
 
-| Job | Builds | What it does |
-| --- | --- | --- |
-| `resolve` | `resolve` stage | VERSION → `version`; greatest previous release tag → `base_version`; prunes |
-| `version-check` | `version-check` stage | **fails if VERSION ≤ `base_version`** (only skipped when there's no previous tag); prunes |
-| `unit-test` | `unit-test` stage | runs bats tests; prunes |
-| `runtime-build` | all 8 variants (base/rust/node/python/media/cpp/go/java) | builds **each Dockerfile separately**, runs the full per-variant `runtime-smoke.sh`, prunes image + build cache |
-| `integration` | `integration-smoke` stage | runs `cli` integration smoke; prunes |
+| Job | What it does |
+| --- | --- |
+| `resolve` | VERSION + greatest **git release tag** (`host-last-published-version.sh`) + greatest **published Docker Hub** version (`host-last-published-docker-version.sh` — all tags paginated, greatest bare `X.Y.Z` = latest) → `git_version` + `base_version` |
+| `version-check` | VERSION must be bare semver `x.y.z`, **strictly greater than both** the greatest git release tag and the greatest published Docker version (each comparison skipped only when that source has nothing published) |
+| `lint` | node image: `md lint` · `md link` · `md table` · `json lint` · `whitespace lint` · `sh lint` (shellcheck) · `dockerfile lint` (`docker build --check`) · `actionlint` |
+| `lint-yml` | python image: `yamllint` |
+| `unit-test` | bats tests |
+| `runtime-build` | all 8 variants (base/rust/node/python/media/cpp/go/java): build each Dockerfile + full per-variant `runtime-smoke.sh` (tools present **and** other-language toolchains absent) |
+| `integration` | `cli` integration smoke |
 
 Every job that builds images cleans up afterwards
-(`docker image prune -af && docker builder prune -af`) — re-downloading is fine.
+(`docker image prune -af && docker builder prune -af`).
 
-## Publish (`.github/workflows/publish.yaml`) — new tags
+## Publish (`release.yml`) — main pushes + version tags
 
-Triggered by `push` of a version tag (`X.Y.Z`):
+Lean on purpose: full validation already ran in the PR gate, so the release focuses on **build + push**.
 
-- `resolve-release` validates the tag is semver, **matches `VERSION`**, and is
-  **greater than the previous release tag** (downgrade guard), then prunes.
-- `publish-docker` builds + pushes `binarylifter/gardusig-cli:X.Y.Z` and
-  `-base/-rust/-node/-python/-media/-cpp/-go/-java`, then smokes the pushed
-  images and prunes.
-- `publish-github` creates the GitHub release.
+- **Push to `main`** → `auto-tag` job (tags are bare `x.y.z`, no `v` prefix):
+  - Skips release commits (`chore(release):`) and already-tagged HEAD.
+  - `next = VERSION` when VERSION is already strictly greater than the greatest **git release tag** and the greatest **published Docker Hub** version — the normal path, since the PR gate embedded the bump.
+  - Otherwise (direct push with a stale `VERSION`) it **minor-bumps** the greater of the two greatest versions (`M.(m+1).0`) — always strictly above both sources.
+  - When `next == VERSION` the merged bump is **not re-committed** (no `chore(release):` on the normal path); the job just tags and pushes. The tag push (via `PAT_TOKEN`) triggers the publish jobs below.
+- **Tag push (`X.Y.Z`)**:
+  - `resolve-release`: tag is bare semver, **matches `VERSION`**, and is greater than the previous git release tag **and** the greatest published Docker version (downgrade guard).
+  - `publish-docker`: builds + pushes `skibiribab/cli:X.Y.Z` and `-base/-rust/-node/-python/-media/-cpp/-go/-java`, then a **slim smoke** — pulls each published tag back (including the `base-X.Y.Z` alias) and verifies `cli --version` matches plus one cheap tool probe per variant (no full lint smoke; that already ran in PR CI on the same tree).
+  - `publish-github`: creates the GitHub release.
 
 `ci-push` / `ci-smoke` / `ci-github-release` are `docker/pull-request.dockerfile`
 targets running from a `docker:27-cli` image with the daemon socket mounted.
 
 ## Version gate
 
-- `VERSION` (the repo's single version source) must be **greater than the
-  greatest previous release tag** — enforced on every PR (CI) and again at
-  publish time (downgrade guard).
-- Comparison is component-wise semver (`stage_compare_versions` in
-  `scripts/_common.sh`), so `1.3.0 > 1.2.10`.
+- Two sources of truth, both must be beaten:
+  - the greatest **bare `X.Y.Z` git release tag**,
+  - the greatest **bare `X.Y.Z` published on Docker Hub** (all tags paginated, greatest semver = latest).
+- PR: `VERSION` must be bare semver and **strictly greater than both** (each comparison skipped only when its source has no version yet).
+- Release: the tag must be strictly greater than both the previous git tag and the greatest published Docker version (downgrade guard).
+- Auto-tag: tags the PR-bumped `VERSION`; only minor-bumps when `VERSION` didn't move (direct push).
 
-## Pipeline scripts (`scripts/`)
+## Pipeline scripts
 
-- `scripts/_common.sh` — version from `VERSION`, semver compare, variant →
-  dockerfile/tag maps, stage timeouts.
-- `scripts/release/` — build/push/smoke/verify/release helpers.
-- `scripts/pull-request/` — resolve, version gate, bats unit test, integration smoke.
+- `src/scripts/_common.sh` — version from `VERSION`, semver compare, `stage_bump_minor`, `stage_max_published_docker_version`, variant → dockerfile/tag maps.
+- `src/scripts/pull-request/` — resolve, Docker version gate, lint, bats, integration.
+- `src/scripts/release/` — build/push/slim-smoke/verify/release helpers.

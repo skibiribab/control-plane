@@ -9,7 +9,7 @@ placement — what matters is the thing being validated (see the placement rule)
 1. If the thing being validated matches a supported language image (rust, node,
    python, media, cpp, go, java), the tool lives **in that image** (native).
 2. Cross-cutting validators with no language home stay in **base** as pinned
-   lightweight binaries/pip.
+   lightweight binaries.
 3. A tool written in X but validating something else does **not** move to the X
    image (e.g. lychee is Rust but validates URLs → `-rust` because lychee is the
    rust image's tool; actionlint is Go but validates workflows → base).

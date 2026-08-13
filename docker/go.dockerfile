@@ -1,4 +1,4 @@
-# go runtime image — binarylifter/gardusig-cli:${version}-go.
+# go runtime image — skibiribab/cli:${version}-go.
 # base + golang toolchain for `cli go lint` / `cli go test`.
 
 FROM alpine:3.21 AS src

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Ensure gardusig-cli inside the runtime image matches the Docker/PyPI version tag.
+# Ensure skibiribab-cli inside the runtime image matches the Docker version tag.
 set -euo pipefail
 # shellcheck source=/dev/null
 source "$(dirname "${BASH_SOURCE[0]}")/../_common.sh"

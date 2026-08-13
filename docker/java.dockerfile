@@ -1,4 +1,4 @@
-# java runtime image — binarylifter/gardusig-cli:${version}-java.
+# java runtime image — skibiribab/cli:${version}-java.
 # base + OpenJDK 21 / Maven / Gradle for `cli java lint` / `cli java test`.
 
 FROM alpine:3.21 AS src

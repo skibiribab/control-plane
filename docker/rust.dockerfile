@@ -1,4 +1,4 @@
-# rust runtime image — binarylifter/gardusig-cli:${version}-rust.
+# rust runtime image — skibiribab/cli:${version}-rust.
 # base + rust/cargo toolchain + lychee (url).
 
 FROM alpine:3.21 AS src

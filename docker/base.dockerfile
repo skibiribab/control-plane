@@ -1,4 +1,4 @@
-# base runtime image — binarylifter/gardusig-cli:${version} (also :base-${version}).
+# base runtime image — skibiribab/cli:${version} (also :base-${version}).
 # Lean Alpine with the bash CLI + core shelling tools + no-language validators.
 # The src stage holds the build context; the final stage ships only the
 # relevant artifacts (/cli /lib /commands /VERSION) plus installed tools.

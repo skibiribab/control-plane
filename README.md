@@ -1,6 +1,6 @@
 # control-plane
 
-Workflow dispatcher and janitor for the gardusig ecosystem. A **bash-first CLI** (`cli <noun> <verb>`) for repository automation, plus a set of reusable **stage workflows** that inspect repositories, plan work, open issues, create PRs, fix and review them, and clean up anything that gets stuck.
+Workflow dispatcher and janitor for the skibiribab ecosystem. A **bash-first CLI** (`cli <noun> <verb>`) for repository automation, plus a set of reusable **stage workflows** that inspect repositories, plan work, open issues, create PRs, fix and review them, and clean up anything that gets stuck.
 
 Two halves, one repo:
 
@@ -12,7 +12,7 @@ Two halves, one repo:
 Three pillars:
 
 - **CLI** — `cli <noun> <verb>` commands (lint / validation / ops) shipped in Docker images.
-- **Stages** — reusable dispatch workflows (issue-* → pr-* → janitor) that act on other repos.
+- **Stages** — reusable dispatch workflows (issue-\* → pr-\* → janitor) that act on other repos.
 - **Docker + release** — the runtime images and tag-driven releases.
 
 ## CLI
@@ -20,10 +20,10 @@ Three pillars:
 A lean, bash-first CLI for workflow automation, repository checks, and release orchestration. Every command is a thin wrapper around an existing tool; each command runs in the Docker image that owns its toolchain.
 
 ```bash
-docker run --rm -v "$PWD:/repo" -w /repo binarylifter/gardusig-cli:1.2.0 sh lint .
-docker run --rm -v "$PWD:/repo" -w /repo binarylifter/gardusig-cli:1.2.0-node md lint .
-docker run --rm -v "$PWD:/repo" -w /repo binarylifter/gardusig-cli:1.2.0-python yml lint .
-docker run --rm -v "$PWD:/repo" -w /repo binarylifter/gardusig-cli:1.2.0 git status
+docker run --rm -v "$PWD:/repo" -w /repo skibiribab/cli:1.2.0 sh lint .
+docker run --rm -v "$PWD:/repo" -w /repo skibiribab/cli:1.2.0-node md lint .
+docker run --rm -v "$PWD:/repo" -w /repo skibiribab/cli:1.2.0-python yml lint .
+docker run --rm -v "$PWD:/repo" -w /repo skibiribab/cli:1.2.0 git status
 ```
 
 If a command's tool is missing, `cli` tells you which image to use.
@@ -37,13 +37,13 @@ Alpine-based, versioned tags (no `latest`):
 | `:1.2.0` (`:base-1.2.0`) | git, gh, docker-cli, opencode, shellcheck, actionlint, curl, jq-adjacent core | `sh lint`, `dockerfile lint`, `structure lint`, `git`, `gh`, `docker`, `opencode`, `integration` |
 | `:1.2.0-rust` | rust/cargo + lychee | `url`, `rust lint`, `rust test` |
 | `:1.2.0-node` | node/npm + markdownlint + jq | `md lint`, `json lint`, `tasks lint`, `typescript lint/test`, `javascript lint/test`, `node` |
-| `:1.2.0-python` | python3/pip + codespell, yamllint | `yml lint`, `python lint/test` |
+| `:1.2.0-python` | python3 + yamllint | `yml lint`, `python lint/test` |
 | `:1.2.0-media` | ffmpeg, imagemagick, poppler | `pdf lint`, `png/jpg/... lint`, `mp4/... scan/compress` |
 | `:1.2.0-cpp` | gcc/g++/make/cmake/clang-format | `cpp lint/test` |
 | `:1.2.0-go` | golang | `go lint/test` |
 | `:1.2.0-java` | OpenJDK 21/Maven/Gradle | `java lint/test` |
 
-Every dependency — Alpine base digest, apk packages, static binaries, npm/pip packages — is pinned in `docker/runtime/versions.env`.
+Every dependency — Alpine base digest, apk packages, static binaries, npm packages — is pinned in `docker/runtime/versions.env`.
 
 ## Stages (the control plane)
 
@@ -80,7 +80,7 @@ issue-find-gaps ──► issue-create-epic ──► issue-review ──► iss
 ### How it works
 
 - **Reusables only.** All 8 stages are `workflow_call` workflows. They never run standalone and have no `schedule`/`workflow_dispatch` of their own — triggers live in the caller installed per target repo.
-- **Self-guard.** Every job runs `if: github.repository != 'gardusig/control-plane'`. Inside a reusable, `github.repository` is the *caller* repo, so the plane can never act on itself.
+- **Self-guard.** Every job runs `if: github.repository != 'skibiribab/control-plane'`. Inside a reusable, `github.repository` is the *caller* repo, so the plane can never act on itself.
 - **Manual triggers.** Each caller exposes the 8 stages as a manual `workflow_dispatch` run with a `stage` selector plus `issue_number` / `pr_number` / `max_attempts` inputs.
 - **Attempt counting.** `pr-fix` counts prior fixes from PR comments starting with `<!-- ai-fix-attempt -->` and stops once `count >= max_attempts`. `pr-janitor` uses the same counter: past the threshold it comments, closes the PR, and opens a `ai/stuck` tracking issue — no infinite loops.
 - **AI markers.** Each stage has a stub step whose comment identifies the future AI call: `# ai marker: <stage>-gh`. When the AI layer lands, stubs get replaced by real calls; the markers stay as stable identifiers.
@@ -103,7 +103,7 @@ issue-find-gaps ──► issue-create-epic ──► issue-review ──► iss
 2. Set the `PAT_TOKEN` secret on the target repo — a **fine-grained** token with `Contents` + `Issues` read/write on that repo **only**, with an expiry.
 3. From the target repo's Actions tab, run the caller, pick a `stage`, and fill in `issue_number` / `pr_number` where required.
 
-The caller forwards your secret to the reusable via `secrets: inherit`; the reusable is referenced as `gardusig/control-plane/.github/workflows/<stage>.yml@main`.
+The caller forwards your secret to the reusable via `secrets: inherit`; the reusable is referenced as `skibiribab/control-plane/.github/workflows/<stage>.yml@main`.
 
 ## Layout
 
@@ -124,10 +124,19 @@ docs/                   docs
   release.yml           release (docker + GitHub)
 ```
 
+## CI / releases
+
+Two workflows, Docker-only:
+
+- **PR** (`.github/workflows/test.yml`) — runs as many validations as possible: version gate (**bare `X.Y.Z`**, strictly greater than the greatest **git release tag** *and* the greatest published **Docker Hub** tag — the bump is embedded in the PR), lint (md/json/yml/sh/dockerfile/actionlint), bats, all 8 runtime images + full per-variant smoke (each image is distinct — other language toolchains are asserted absent), integration.
+- **Publish** (`.github/workflows/release.yml`) — on push to `main` it tags the merged `VERSION` (`X.Y.Z`, no `v`; only minor-bumps as a fallback for direct pushes so we always release strictly above what's live); on a version tag it builds + pushes every image and runs a slim pull-back smoke. See [`docs/ci-workflows.md`](docs/ci-workflows.md).
+
+Secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `PAT_TOKEN` — see [`docs/secrets.md`](docs/secrets.md).
+
 ## Build plan
 
 The roadmap is tracked as GitHub issues in this repo — epics `E01`–`E10` (dependency-ordered), each with child issues following a shared template. See the issues for the full plan.
 
 ## Status
 
-Scaffolding. Reusables + caller + janitor logic are in place; AI calls are stubbed behind `# <stage>-gh` markers. The CLI ships in Docker images (`binarylifter/gardusig-cli`).
+Scaffolding. Reusables + caller + janitor logic are in place; AI calls are stubbed behind `# <stage>-gh` markers. The CLI ships in Docker images (`skibiribab/cli`).

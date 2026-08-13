@@ -28,7 +28,7 @@ permissions:
 jobs:
   review-pr:
     runs-on: ubuntu-latest
-    if: github.repository != 'gardusig/control-plane'
+    if: github.repository != 'skibiribab/control-plane'
     steps:
       - name: Checkout target repo
         uses: actions/checkout@v4

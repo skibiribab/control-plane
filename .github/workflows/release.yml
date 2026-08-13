@@ -1,12 +1,15 @@
 name: Publish
 
 # Tag-driven publish: git tag X.Y.Z → docker build → docker push → smoke → GitHub release.
-# Docker-only: PyPI publishing is dropped; the CLI ships in the runtime images.
+# Tags are bare x.y.z (no v prefix); VERSION is bumped in the PR, so the main-push
+# auto-tag job only tags the merged VERSION (bumps only as a fallback).
 
 on:
   push:
     tags:
-      - "*"
+      - "[0-9]*"
+    branches:
+      - main
 
 concurrency:
   group: release-${{ github.ref }}
@@ -17,11 +20,100 @@ permissions:
 
 env:
   PR_DOCKERFILE: docker/pull-request.dockerfile
-  RUNTIME_IMAGE: binarylifter/gardusig-cli
+  RUNTIME_IMAGE: skibiribab/cli
 
 jobs:
+  auto-tag:
+    name: Auto-version + tag
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - id: checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+        timeout-minutes: 3
+      - id: guard
+        name: Guard (skip release commits / already tagged)
+        run: |
+          set -euo pipefail
+          msg="$(git log -1 --pretty=%s)"
+          if [[ "$msg" == "chore(release):"* ]]; then
+            echo "HEAD is a release commit — skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git tag --points-at HEAD | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "HEAD already tagged — skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+      - id: version
+        name: Compute next version (git + Docker greatest + minor bump)
+        if: steps.guard.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          source src/scripts/_common.sh
+          current="$(tr -d '[:space:]' < VERSION)"
+          if [[ ! "$current" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "VERSION must be bare semver x.y.z, got: ${current}" >&2
+            exit 1
+          fi
+          max_git="$(bash src/scripts/pull-request/host-last-published-version.sh || true)"
+          max_docker="$(bash src/scripts/pull-request/host-last-published-docker-version.sh || true)"
+          next="$current"
+          max_any=""
+          if [[ -n "$max_git" ]] && ! stage_compare_versions "$max_git" "$current" >/dev/null 2>&1; then
+            max_any="$max_git"
+          fi
+          if [[ -n "$max_docker" ]] && ! stage_compare_versions "$max_docker" "$current" >/dev/null 2>&1; then
+            if [[ -z "$max_any" ]] || stage_compare_versions "$max_any" "$max_docker" >/dev/null 2>&1; then
+              max_any="$max_docker"
+            fi
+          fi
+          if [[ -n "$max_any" ]]; then
+            next="$(stage_bump_minor "$max_any")"
+          fi
+          {
+            echo "current=${current}"
+            echo "max_git=${max_git}"
+            echo "max_docker=${max_docker}"
+            echo "next=${next}"
+          } >> "$GITHUB_OUTPUT"
+      - id: tag
+        name: Tag release (bump VERSION only if stale)
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          set -euo pipefail
+          next="${{ steps.version.outputs.next }}"
+          current="${{ steps.version.outputs.current }}"
+          if [[ "$next" != "$current" ]]; then
+            printf '%s\n' "$next" > VERSION
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add VERSION
+            git commit -m "chore(release): ${next}"
+            git push origin main
+          else
+            echo "VERSION already bumped in the merged PR (${current}) — tagging as-is"
+          fi
+          git tag "${next}"
+          if [[ -n "$PAT_TOKEN" ]]; then
+            git remote set-url origin "https://x-access-token:${PAT_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+            git push origin "${next}"
+          else
+            git push origin "${next}"
+            echo "::warning::PAT_TOKEN secret is not set — tag pushed with GITHUB_TOKEN, publish will not auto-trigger"
+          fi
+
   resolve:
     name: Resolve version
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     timeout-minutes: 6
     outputs:
@@ -40,10 +132,9 @@ jobs:
         run: |
           docker build -f "${PR_DOCKERFILE}" --target resolve-release -t ci-release-resolve .
           PREV_VERSION="$(git tag --sort=-v:refname 2>/dev/null \
-            | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+' \
+            | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' \
             | grep -vx "${GITHUB_REF_NAME}" \
             | head -n1 \
-            | sed 's/^v//' \
             || true)"
           docker run --rm \
             -e GITHUB_OUTPUT \
@@ -59,6 +150,7 @@ jobs:
   publish-docker:
     name: Publish to Docker
     needs: resolve
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -75,15 +167,7 @@ jobs:
           CLI_VERSION: ${{ needs.resolve.outputs.version }}
         run: |
           set -euo pipefail
-          for variant in base rust node python cpp go media java; do
-            file="docker/${variant}.dockerfile"
-            tag="${RUNTIME_IMAGE}:${CLI_VERSION}-${variant}"
-            if [[ "${variant}" == "base" ]]; then
-              tag="${RUNTIME_IMAGE}:${CLI_VERSION}"
-            fi
-            docker build -f "${file}" -t "${tag}" .
-          done
-          docker tag "${RUNTIME_IMAGE}:${CLI_VERSION}" "${RUNTIME_IMAGE}:base-${CLI_VERSION}"
+          bash src/scripts/release/build-runtime-image.sh
           docker run --rm "${RUNTIME_IMAGE}:${CLI_VERSION}" --version | grep -Fxq "${CLI_VERSION}"
       - id: ci-tools
         name: docker build — ci-tools
@@ -96,7 +180,7 @@ jobs:
         uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
         timeout-minutes: 3
         with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - id: publish-docker
         name: Publish to Docker
@@ -132,6 +216,7 @@ jobs:
   publish-github:
     name: Publish to GitHub
     needs: [resolve, publish-docker]
+    if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     timeout-minutes: 9
     steps:
