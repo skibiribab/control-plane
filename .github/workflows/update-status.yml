@@ -1,18 +1,43 @@
-name: Repo status
+name: Update repo status
+
+# Listener: content repos fire a repository_dispatch on main push; the weekly
+# schedule is a fallback for repos that missed a dispatch.
 
 on:
-  push:
-    branches: [main]
+  repository_dispatch:
+    types: [repo-status]
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1'
 
 permissions:
   contents: read
 
 jobs:
-  notify:
+  update-status:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 10
     steps:
-      - name: Notify status listener
-        run: gh api repos/skibiribab/control-plane/dispatches -f event_type=repo-status
+      - id: checkout
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        timeout-minutes: 3
+      - id: build
+        name: docker build — ci-status-update
+        timeout-minutes: 5
+        run: docker build -f "${PR_DOCKERFILE}" --target ci-status-update -t ci-status-update .
+        env:
+          PR_DOCKERFILE: docker/pull-request.dockerfile
+      - id: run
+        name: Run status update
+        timeout-minutes: 5
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: |
+          docker run --rm --network=host \
+            -e GH_TOKEN="${GH_TOKEN}" \
+            -e GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" \
+            ci-status-update
+      - id: cleanup
+        name: docker — cleanup
+        timeout-minutes: 3
+        run: docker image prune -af >/dev/null
