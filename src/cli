@@ -16,6 +16,8 @@ source "${CLI_ROOT}/lib/json.sh"
 # shellcheck source=/dev/null
 source "${CLI_ROOT}/lib/tools.sh"
 # shellcheck source=/dev/null
+source "${CLI_ROOT}/lib/verbs.sh"
+# shellcheck source=/dev/null
 source "${CLI_ROOT}/lib/report.sh"
 # shellcheck source=/dev/null
 source "${CLI_ROOT}/lib/files.sh"
@@ -33,20 +35,21 @@ Model: cli <noun> <verb> [args...]  (noun = extension | language | concept)
 
   cli <noun> lint|test|scan|compress   file-type and language checks
   cli <noun> [args...]                 git/gh/docker/opencode/etc.
+  cli check [PATH]                     run every generic lint this image provides
   cli tree generate|validate [PATH]    integrity manifest (sha256 + size)
   cli repo lint [PATH]                 composite markdown/notes checks
   cli repo publish-tag                 timestamp tag + GitHub release
 
 Nouns (file types):
-  sh lint · dockerfile lint · structure lint · md lint · json lint
+  sh lint · actions lint · dockerfile lint · structure lint · md lint · json lint
   tasks lint · yml lint · pdf lint · png|jpg|jpeg|gif|webp|svg|bmp lint
-  mp4|mov|mkv|webm scan|compress · url (lychee)
+  mp4|mov|mkv|webm scan|compress · url (lychee) · tex build (latexmk)
 
 Nouns (languages):
   rust · cpp · go · java · python · typescript · javascript · node
   each: cli <lang> lint|test
 
-Nouns (base operations):
+Nouns (ops):
   git · gh · docker · opencode · integration
 
 Run `cli <noun> --help` for details. Missing tools recommend the owning image.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# cli opencode — AI prompts, chat sessions, setup (base image).
+# cli opencode — AI prompts, chat sessions, setup (orphanage image).
 set -euo pipefail
 
 cli_opencode_help() {

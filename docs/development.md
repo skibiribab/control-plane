@@ -20,14 +20,17 @@ build the Docker images to smoke changes.
 ## Local image builds
 
 ```bash
-docker build -f docker/base.dockerfile -t cli-base .
-docker build -f docker/rust.dockerfile -t cli-rust .
+docker build -f docker/orphanage.dockerfile -t cli-orphanage .
+docker build -f docker/ai.dockerfile -t cli-ai .
 docker build -f docker/node.dockerfile -t cli-node .
 docker build -f docker/python.dockerfile -t cli-python .
-docker build -f docker/media.dockerfile -t cli-media .
-bash src/scripts/release/runtime-smoke.sh cli-base base
+bash src/scripts/release/runtime-smoke.sh cli-orphanage orphanage
+bash src/scripts/release/runtime-smoke.sh cli-ai ai
 bash src/scripts/release/runtime-smoke.sh cli-node node
 ```
+
+For the full variant set, run the same for
+`rust`/`cpp`/`go`/`java`/`media` from their `docker/*.dockerfile`.
 
 Clean up after yourself so the machine doesn't fill up:
 

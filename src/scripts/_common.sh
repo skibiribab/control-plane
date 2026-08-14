@@ -22,22 +22,23 @@ gh_repo_root() {
 }
 
 PR_DOCKERFILE="${PR_DOCKERFILE:-docker/pull-request.dockerfile}"
-RELEASE_DOCKERFILE="${RELEASE_DOCKERFILE:-docker/base.dockerfile}"
+RELEASE_DOCKERFILE="${RELEASE_DOCKERFILE:-docker/orphanage.dockerfile}"
 RUNTIME_IMAGE="${RUNTIME_IMAGE:-skibiribab/cli}"
 
 # shellcheck disable=SC2034  # consumed by release/pull-request scripts
-RUNTIME_VARIANTS=(base rust node python cpp go media java)
+RUNTIME_VARIANTS=(orphanage node python rust cpp go java media ai)
 
 runtime_variant_dockerfile() {
   case "$1" in
-    base) echo "docker/base.dockerfile" ;;
-    rust) echo "docker/rust.dockerfile" ;;
+    orphanage) echo "docker/orphanage.dockerfile" ;;
     node) echo "docker/node.dockerfile" ;;
     python) echo "docker/python.dockerfile" ;;
+    rust) echo "docker/rust.dockerfile" ;;
     cpp) echo "docker/cpp.dockerfile" ;;
     go) echo "docker/go.dockerfile" ;;
-    media) echo "docker/media.dockerfile" ;;
     java) echo "docker/java.dockerfile" ;;
+    media) echo "docker/media.dockerfile" ;;
+    ai) echo "docker/ai.dockerfile" ;;
     *) echo "unknown runtime variant: $1" >&2; exit 2 ;;
   esac
 }
@@ -45,11 +46,7 @@ runtime_variant_dockerfile() {
 runtime_variant_tag() {
   local version="$1"
   local variant="$2"
-  if [[ "$variant" == "base" ]]; then
-    echo "${RUNTIME_IMAGE}:${version}"
-  else
-    echo "${RUNTIME_IMAGE}:${version}-${variant}"
-  fi
+  echo "${RUNTIME_IMAGE}:${version}-${variant}"
 }
 
 # gh_read_project_version — version from the VERSION file (single source of truth).
@@ -169,7 +166,10 @@ stage_max_published_docker_version() {
     names+="$(printf '%s\n' "$body" | grep -oE '"name":"[^"]+"' | sed -E 's/"name":"([^"]+)"/\1/')"$'\n'
     url="$(printf '%s\n' "$body" | grep -oE '"next":"[^"]+"' | sed -E 's/"next":"([^"]+)"/\1/')"
   done
-  printf '%s\n' "$names" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V -r | head -n1
+  printf '%s\n' "$names" \
+    | grep -E '^[0-9]+\.[0-9]+\.[0-9]+-(orphanage|node|python|rust|cpp|go|java|media|ai)$' \
+    | sed -E 's/-[^-]+$//' \
+    | sort -V -r | head -n1
 }
 
 docker_registry_has_tag() {

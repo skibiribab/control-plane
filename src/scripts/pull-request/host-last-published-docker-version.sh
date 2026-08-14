@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Host-only helper: print the greatest published version (bare X.Y.Z) for
-# RUNTIME_IMAGE on Docker Hub — paginates ALL tags, greatest semver = latest.
+# RUNTIME_IMAGE on Docker Hub — derived from the <version>-<variant> tags,
+# paginates ALL tags, greatest semver = latest.
 # A 404 (repo/tags not yet published) prints nothing (no published version).
 # Transient failures retry a few times, then fall back to the repo's git
 # version tags with a warning. Used as the Docker side of the PR version gate.
@@ -42,7 +43,10 @@ fetch_tags() {
 
 greatest_version() {
   # stdin: tag names -> stdout: greatest bare X.Y.Z (empty if none)
-  grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V -r | head -n1
+  # Versions come from <version>-<variant> tags only (bare tags are not pushed).
+  grep -E '^[0-9]+\.[0-9]+\.[0-9]+-(orphanage|node|python|rust|cpp|go|java|media|ai)$' \
+    | sed -E 's/-[^-]+$//' \
+    | sort -V -r | head -n1
 }
 
 attempt=1

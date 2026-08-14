@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# cli sh lint — shellcheck over *.sh (base image).
+# cli sh lint — shellcheck over *.sh (orphanage image).
 # shellcheck disable=SC2317  # callbacks invoked via lint_each
 set -euo pipefail
 
 cli_sh_help() {
   cat <<'EOF'
-cli sh lint [PATH] [--json] — shellcheck over *.sh (base image).
+cli sh lint [PATH] [--json] — shellcheck over *.sh (orphanage image).
 PATH: a single file or a subtree root to scan (default ".").
 EOF
 }

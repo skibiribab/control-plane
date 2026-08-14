@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# cli structure lint — enforce a layout manifest (base image).
+# cli structure lint — enforce a layout manifest (orphanage image).
 # Supports config/tree.txt (bash) and config/tree.json (node validator).
 set -euo pipefail
 
@@ -34,6 +34,13 @@ cli_structure_main() {
         manifest="${WS}/config/tree.txt"
       fi
     fi
+  fi
+
+  # No tree manifest configured -> skip (a repo without the convention isn't a
+  # failure; `repo lint`/`cli check` stay a safe generic default for any repo).
+  if [[ -z "$manifest" || ! -e "$manifest" ]]; then
+    printf 'structure lint skipped: no tree manifest (config/tree.json|txt)\n'
+    return 0
   fi
 
   if [[ "$manifest" == *.json ]]; then

@@ -1,6 +1,6 @@
 # media runtime image — skibiribab/cli:${version}-media.
-# base + ffmpeg (video scan/compress) + imagemagick (image lint) +
-# poppler-utils (pdf lint).
+# Video/image tooling only (ffmpeg + imagemagick); PDF tooling (qpdf/poppler)
+# lives in the orphanage image.
 
 FROM alpine:3.21 AS src
 WORKDIR /src
@@ -12,7 +12,7 @@ ENV CLI_RUNTIME=media
 
 COPY --from=src /src/docker/runtime /install/
 RUN apk add --no-cache bash \
-    && bash /install/install-base.sh \
+    && bash /install/install-core.sh \
     && bash /install/install-media.sh
 
 WORKDIR /workspace

@@ -22,7 +22,7 @@ if command -v gh >/dev/null 2>&1 && [[ -n "${GH_TOKEN:-}" ]]; then
     --title "$tag" \
     --notes "Release **skibiribab-cli ${version}**
 
-- Docker: \`${RUNTIME_IMAGE:-skibiribab/cli}:${version}\` (+ \`-base\`/\`-rust\`/\`-node\`/\`-python\`/\`-cpp\`/\`-go\`/\`-media\`/\`-java\`)"
+- Docker: \`${RUNTIME_IMAGE:-skibiribab/cli}:${version}\` (+ \`-orphanage\`/\`-ai\`/\`-node\`/\`-python\`/\`-rust\`/\`-cpp\`/\`-go\`/\`-java\`/\`-media\`)"
   echo "Created GitHub release $tag"
   exit 0
 fi

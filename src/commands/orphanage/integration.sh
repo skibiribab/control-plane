@@ -8,7 +8,7 @@ cli integration — per-image tool/language coverage.
 
 Usage: cli integration list | check
 
-  list    print the tool -> owning image table
+  list    print the tool -> owning image table + the per-image cli verb sets
   check   report tools present/missing in this image and which image provides
           each missing tool
 EOF
@@ -21,6 +21,8 @@ cli_integration_main() {
     list)
       printf 'image\ttool\n'
       all_tools | sort
+      printf '\nimage\tverbs (cli <verb> lint ...)\n'
+      all_verbs | sort
       ;;
     check)
       printf 'current image: %s\n' "$CLI_RUNTIME"
@@ -40,6 +42,7 @@ cli_integration_main() {
       else
         cli_ok "all tools for this image are present"
       fi
+      printf 'check verbs for this image: %s\n' "$(check_verbs "$CLI_RUNTIME")"
       ;;
     *) cli_die "unknown integration command: ${cmd}" ;;
   esac

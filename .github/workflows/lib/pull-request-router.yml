@@ -2,8 +2,19 @@ name: pull-request-router (control-plane reusable)
 
 # Dispatcher router for thin repos. A target repo calls this reusable from its
 # own PR workflow; it checks out the PR head, runs the pipeline defined in the
-# repo's `.github/pull-request.yaml` (fallback `.github/repo-review.yaml`)
-# against the repo's own Dockerfile targets, and posts the results to the PR.
+# repo's `.github/pull-request.yaml` (fallback `.github/repo-review.yaml`) and
+# posts the results to the PR.
+#
+# Spec stages are either:
+#   - image stages: `{ image: <variant>, command: "<shell>" }` — run inside
+#     skibiribab/cli:<latest-published>-<variant>, repo mounted at /repo.
+#     The cli version is resolved at runtime so repos never pin a stale tag.
+#   - legacy target stages: `{ target: <stage> }` — build the repo's own
+#     docker/Dockerfile target and run it.
+#
+# Without a spec file, the default pipeline is `cli check .` in the repo's
+# primary image (input `default_image`). If the repo contains shell scripts or
+# Dockerfiles, an `-orphanage` ops stage (sh/actions/dockerfile lint) is added.
 
 on:
   workflow_call:
@@ -23,6 +34,11 @@ on:
       pr_number:
         type: string
         required: true
+      default_image:
+        type: string
+        required: false
+        default: node
+        description: Primary validation image variant used for the default `cli check` stage when the repo has no spec file.
     secrets:
       CENTRAL_PIPELINE_PAT:
         required: true
@@ -41,6 +57,9 @@ jobs:
           repository: ${{ inputs.repository }}
           ref: ${{ inputs.sha }}
 
+      - name: Set up BuildKit (dockerfile lint)
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
+
       - id: spec
         name: Resolve PR pipeline spec
         run: |
@@ -48,49 +67,96 @@ jobs:
           if [[ ! -f "$spec" ]]; then
             spec=".github/repo-review.yaml"
           fi
-          if [[ ! -f "$spec" ]]; then
-            echo "no PR pipeline spec found" >&2
-            exit 1
+          has_spec=0
+          if [[ -f "$spec" ]]; then
+            has_spec=1
+            cp "$spec" /tmp/spec.yaml
           fi
-          echo "spec=$spec" >> "$GITHUB_OUTPUT"
+          # Ops detection: shell scripts / Dockerfiles present → orphanage ops stage.
+          has_ops=0
+          if git ls-files -- '*.sh' 'Dockerfile' 'Dockerfile.*' 'docker/**' '.github/workflows/**' | grep -q .; then
+            has_ops=1
+          fi
+          if [[ "$has_spec" -eq 0 ]]; then
+            printf '%s\n' \
+              "          - id: lint" \
+              "            name: cli check (${{ inputs.default_image }})" \
+              "            image: ${{ inputs.default_image }}" \
+              "            command: cli check ." > /tmp/spec.yaml
+          fi
+          if [[ "$has_ops" -eq 1 ]] && ! grep -qE '^\s*image:\s*orphanage' /tmp/spec.yaml; then
+            printf '%s\n' \
+              "          - id: ops" \
+              "            name: orphanage ops (sh/actions/dockerfile)" \
+              "            image: orphanage" \
+              "            command: cli check ." >> /tmp/spec.yaml
+          fi
+          echo "spec=/tmp/spec.yaml" >> "$GITHUB_OUTPUT"
 
-      - name: Run pipeline targets
+      - id: cli
+        name: Resolve latest published cli version
+        run: |
+          v="$(curl -fsSL "https://hub.docker.com/v2/repositories/skibiribab/cli/tags?page_size=100" \
+            | grep -oE '"name":"[0-9]+\.[0-9]+\.[0-9]+-(orphanage|node|python|rust|cpp|go|java|media|ai)"' \
+            | sed -E 's/"name":"([^"]+)"/\1/' \
+            | sed -E 's/-[^-]+$//' \
+            | sort -V | tail -n1 || true)"
+          echo "version=${v}" >> "$GITHUB_OUTPUT"
+
+      - name: Run pipeline stages
         env:
           SPEC: ${{ steps.spec.outputs.spec }}
+          CLI_VERSION: ${{ steps.cli.outputs.version }}
         run: |
           set -uo pipefail
           mapfile -t ids < <(grep -E '^\s*- id:' "$SPEC" | sed -E 's/.*- id:[[:space:]]*//' | tr -d '"')
           mapfile -t names < <(grep -E '^\s*name:' "$SPEC" | sed -E 's/.*name:[[:space:]]*//' | tr -d '"')
+          mapfile -t images < <(grep -E '^\s*image:' "$SPEC" | sed -E 's/.*image:[[:space:]]*//' | tr -d '"')
+          mapfile -t commands < <(grep -E '^\s*command:' "$SPEC" | sed -E 's/.*command:[[:space:]]*//' | tr -d '"')
           mapfile -t targets < <(grep -E '^\s*target:' "$SPEC" | sed -E 's/.*target:[[:space:]]*//' | tr -d '"')
           : > /tmp/summary.txt
-          dockerfile_arg=""
-          if [[ -f docker/Dockerfile ]]; then
-            dockerfile_arg="-f docker/Dockerfile"
-          elif [[ -f Dockerfile ]]; then
-            dockerfile_arg="-f Dockerfile"
-          fi
           for i in "${!ids[@]}"; do
-            target="${targets[$i]}"
             label="${ids[$i]}"
             if [[ -n "${names[$i]:-}" ]]; then label="$label (${names[$i]})"; fi
-            echo "=== $label target=$target"
-            if docker build $dockerfile_arg --target "$target" -t "pr-${target}" . >/tmp/build.log 2>&1; then
-              if docker run --rm "pr-${target}" >/tmp/run.log 2>&1; then
+            image="${images[$i]:-}"
+            command="${commands[$i]:-}"
+            target="${targets[$i]:-}"
+            echo "=== $label"
+            if [[ -n "$image" && -n "$command" && -n "$CLI_VERSION" ]]; then
+              if docker run --rm --entrypoint bash \
+                  -v "$PWD:/repo" -w /repo \
+                  -v /var/run/docker.sock:/var/run/docker.sock \
+                  "skibiribab/cli:${CLI_VERSION}-${image}" -ec "$command" >/tmp/run.log 2>&1; then
                 echo "PASS $label" | tee -a /tmp/summary.txt
               else
                 echo "FAIL $label" | tee -a /tmp/summary.txt
                 tail -30 /tmp/run.log >&2 || true
               fi
+            elif [[ -n "$target" ]]; then
+              dockerfile_arg=""
+              if [[ -f docker/Dockerfile ]]; then
+                dockerfile_arg="-f docker/Dockerfile"
+              elif [[ -f Dockerfile ]]; then
+                dockerfile_arg="-f Dockerfile"
+              fi
+              if docker build $dockerfile_arg --target "$target" -t "pr-${target}" . >/tmp/build.log 2>&1 \
+                  && docker run --rm "pr-${target}" >/tmp/run.log 2>&1; then
+                echo "PASS $label" | tee -a /tmp/summary.txt
+              else
+                echo "FAIL $label" | tee -a /tmp/summary.txt
+                tail -30 /tmp/build.log /tmp/run.log >&2 || true
+              fi
             else
               echo "FAIL $label" | tee -a /tmp/summary.txt
-              tail -30 /tmp/build.log >&2 || true
+              echo "stage has neither image+command nor target (or cli version unresolved)" >&2
             fi
           done
 
       - name: Post result to PR
         env:
           GH_TOKEN: ${{ secrets.CENTRAL_PIPELINE_PAT }}
+          CLI_VERSION: ${{ steps.cli.outputs.version }}
         run: |
-          body="Pipeline results ($(date -u +%Y-%m-%dT%H-%M-%SZ)):
-$(sed 's/^/- /' /tmp/summary.txt)"
+          body="Pipeline results ($(date -u +%Y-%m-%dT%H-%M-%SZ), cli ${CLI_VERSION}):
+          $(sed 's/^/- /' /tmp/summary.txt)"
           gh pr comment "${{ inputs.pr_number }}" --repo "${{ inputs.repository }}" --body "$body"

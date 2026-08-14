@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# cli git — git passthrough + archive/backup operations (base image).
+# cli git — git passthrough + archive/backup operations (orphanage image).
 set -euo pipefail
 
 cli_git_help() {
   cat <<'EOF'
-cli git — passthrough to git (base image).
+cli git — passthrough to git (orphanage image).
 
 Usage: cli git <git-args...>
   cli git status · cli git log --oneline -10

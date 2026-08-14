@@ -1,7 +1,7 @@
 # Git commands (`cli git`)
 
 `cli git` is a passthrough to the `git` CLI plus thin composite helpers and
-archive/backup operations. All run in the **base** image.
+archive/backup operations. All run in the **orphanage** image.
 
 ## Passthrough
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# cli dockerfile lint — `docker build --check` (base image, docker socket).
+# cli dockerfile lint — `docker build --check` (orphanage image, docker socket).
 set -euo pipefail
 
 cli_dockerfile_help() {

@@ -15,15 +15,16 @@ _slim_smoke() {
   # Nested so it survives the stage_run_with_timeout subshell.
   variant_probe() {
     case "$1" in
-      base)   echo "git --version" ;;
-      rust)   echo "cargo --version" ;;
-      node)   echo "node --version" ;;
-      python) echo "python3 --version" ;;
-      cpp)    echo "g++ --version" ;;
-      go)     echo "go version" ;;
-      media)  echo "ffmpeg -version" ;;
-      java)   echo "java -version" ;;
-      *)      echo "" ;;
+      orphanage) echo "qpdf --version" ;;
+      node)      echo "node --version" ;;
+      python)    echo "python3 --version" ;;
+      rust)      echo "cargo --version" ;;
+      cpp)       echo "g++ --version" ;;
+      go)        echo "go version" ;;
+      java)      echo "java -version" ;;
+      media)     echo "ffmpeg -version" ;;
+      ai)        echo "opencode --version" ;;
+      *)         echo "" ;;
     esac
   }
 
@@ -37,11 +38,7 @@ _slim_smoke() {
     fi
     echo "publish smoke ok: ${tag}"
   done
-
-  docker_wait_and_pull "${image}" "base-${version}"
-  docker run --rm "${image}:base-${version}" --version | grep -Fxq "$version"
-  echo "publish smoke ok: ${image}:base-${version}"
 }
 
 stage_run_with_timeout "${CI_RELEASE_SMOKE_TIMEOUT:-15m}" _slim_smoke
-echo "publish smoke passed: ${RUNTIME_IMAGE:?RUNTIME_IMAGE required}:${CLI_VERSION:?CLI_VERSION required} (+ variants)"
+echo "publish smoke passed: ${RUNTIME_IMAGE:?RUNTIME_IMAGE required}:${CLI_VERSION:?CLI_VERSION required}-*"

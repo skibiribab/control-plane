@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# JSON emit helpers (printf-based; jq is only in the node image, so base does
-# not depend on it) plus a bounded field extractor for our controlled contract
-# shapes (openode/AI plan JSON, validate --json summaries).
+# JSON emit helpers (printf-based; jq lives only in the orphanage image, so the
+# library does not depend on it) plus a bounded field extractor for our
+# controlled contract shapes (openode/AI plan JSON, validate --json summaries).
 set -euo pipefail
 
 # json_escape <value> — escape for a JSON string.

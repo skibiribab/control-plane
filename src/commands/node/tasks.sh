@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# cli tasks lint — validate tasks/tasks.pairs.json contract (node image).
+# cli tasks lint — validate tasks/tasks.pairs.json contract via node (node image).
 set -euo pipefail
 
 cli_tasks_help() {
@@ -17,13 +17,13 @@ cli_tasks_main() {
   fi
   shift
   noun_args "$@"
-  require_tool jq
+  require_tool node
   local manifest="${WS}/tasks/tasks.pairs.json"
   if [[ ! -f "$manifest" ]]; then
     report_fail "tasks lint" "task pairs manifest not found: ${manifest}"
     return 1
   fi
-  if ! jq empty "$manifest" >/dev/null 2>&1; then
+  if ! node -e 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8"))' "$manifest" >/dev/null 2>&1; then
     report_fail "tasks lint" "invalid task pairs manifest JSON"
     return 1
   fi

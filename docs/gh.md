@@ -1,7 +1,9 @@
 # GitHub (`cli gh`)
 
 `cli gh` is a passthrough to the `gh` CLI plus AI recipes, issue CRUD, and
-Projects v2 management. Runs in the **base** image (git + gh + opencode).
+Projects v2 management. Runs in the **orphanage** image (git + gh + docker).
+The AI recipes (`issue pick`/`plan`/`craft pr`) shell out to `opencode`, which
+lives in the **ai** image.
 
 ## Passthrough
 

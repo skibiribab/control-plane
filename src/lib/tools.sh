@@ -1,22 +1,29 @@
 #!/usr/bin/env bash
 # Tool -> owning image variant registry, plus require_tool which fails with a
 # recommendation to use the image that provides the missing tool.
+#
+# Placement rule:
+#   1. Standalone self-contained CLIs (no language runtime) -> orphanage.
+#   2. Tools that are a dependency of a language ecosystem -> that language image.
+#   3. Domain CLIs (video/image) -> media.
+#   4. The AI agent engine (opencode) -> ai.
 set -euo pipefail
 
 # Runtime image variant, baked in as ENV CLI_RUNTIME by each Dockerfile.
-CLI_RUNTIME="${CLI_RUNTIME:-base}"
+CLI_RUNTIME="${CLI_RUNTIME:-orphanage}"
 
-# tool_image <bin> — owning image variant for a tool (base unless listed).
+# tool_image <bin> — owning image variant for a tool (orphanage unless listed).
 tool_image() {
   case "$1" in
-    lychee|rustc|cargo) echo "rust" ;;
-    node|npm|npx|markdownlint|remark|mermaid|jq|tsc|eslint) echo "node" ;;
+    node|npm|npx|markdownlint|tsc|eslint) echo "node" ;;
     python3|yamllint|pytest) echo "python" ;;
-    ffmpeg|ffprobe|identify|pdfinfo) echo "media" ;;
+    ffmpeg|ffprobe|identify) echo "media" ;;
     gcc|g++|cc|make|cmake|clang|clang-format) echo "cpp" ;;
+    rustc|cargo) echo "rust" ;;
     go|gofmt) echo "go" ;;
     java|javac|mvn|gradle) echo "java" ;;
-    *) echo "base" ;;
+    opencode) echo "ai" ;;
+    *) echo "orphanage" ;;
   esac
 }
 
@@ -24,18 +31,17 @@ tool_image() {
 # `cli integration list/check`).
 all_tools() {
   cat <<'EOF'
-base	shellcheck
-base	actionlint
-base	docker
-base	gh
-base	git
-base	curl
-base	opencode
-rust	lychee
-rust	cargo
-rust	rustc
+orphanage	shellcheck
+orphanage	actionlint
+orphanage	docker
+orphanage	gh
+orphanage	git
+orphanage	curl
+orphanage	jq
+orphanage	qpdf
+orphanage	pdfinfo
+orphanage	lychee
 node	markdownlint
-node	jq
 node	node
 node	npm
 node	tsc
@@ -46,15 +52,17 @@ python	pytest
 media	ffmpeg
 media	ffprobe
 media	identify
-media	pdfinfo
 cpp	g++
 cpp	clang-format
 cpp	cmake
+rust	cargo
+rust	rustc
 go	go
 go	gofmt
 java	java
 java	mvn
 java	gradle
+ai	opencode
 EOF
 }
 
@@ -65,7 +73,7 @@ require_tool() {
   if command -v "$tool" >/dev/null 2>&1; then
     return 0
   fi
-  if [[ "$image" != "base" ]]; then
+  if [[ "$image" != "orphanage" ]]; then
     cli_die "${tool} is required but not in this image (${CLI_RUNTIME}). " \
       "Use the ${image} image: skibiribab/cli:$(cli_version)-${image}"
   fi

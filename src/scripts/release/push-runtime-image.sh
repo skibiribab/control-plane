@@ -9,7 +9,6 @@ _push_runtime_image() {
   for variant in "${RUNTIME_VARIANTS[@]}"; do
     docker push "$(runtime_variant_tag "$version" "$variant")"
   done
-  docker push "${RUNTIME_IMAGE}:base-${version}"
 }
 
 stage_run_with_timeout "${CI_DOCKER_PUSH_TIMEOUT}" _push_runtime_image
@@ -19,5 +18,4 @@ stage_run_with_timeout "${CI_DOCKER_PUSH_TIMEOUT}" _push_runtime_image
 for variant in "${RUNTIME_VARIANTS[@]}"; do
   docker image rm -f "$(runtime_variant_tag "${CLI_VERSION:?CLI_VERSION required}" "$variant")" >/dev/null 2>&1 || true
 done
-docker image rm -f "${RUNTIME_IMAGE}:base-${CLI_VERSION}" >/dev/null 2>&1 || true
 docker builder prune -af >/dev/null 2>&1 || true

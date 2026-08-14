@@ -1,5 +1,5 @@
 # python runtime image — skibiribab/cli:${version}-python.
-# base + python3 + yamllint.
+# python3 + yamllint (yml lint).
 
 FROM alpine:3.21 AS src
 WORKDIR /src
@@ -11,7 +11,7 @@ ENV CLI_RUNTIME=python
 
 COPY --from=src /src/docker/runtime /install/
 RUN apk add --no-cache bash \
-    && bash /install/install-base.sh \
+    && bash /install/install-core.sh \
     && bash /install/install-python.sh
 
 WORKDIR /workspace

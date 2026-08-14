@@ -1,5 +1,5 @@
 # java runtime image — skibiribab/cli:${version}-java.
-# base + OpenJDK 21 / Maven / Gradle for `cli java lint` / `cli java test`.
+# OpenJDK 21 / Maven / Gradle for `cli java lint` / `cli java test`.
 
 FROM alpine:3.21 AS src
 WORKDIR /src
@@ -11,7 +11,7 @@ ENV CLI_RUNTIME=java
 
 COPY --from=src /src/docker/runtime /install/
 RUN apk add --no-cache bash \
-    && bash /install/install-base.sh \
+    && bash /install/install-core.sh \
     && bash /install/install-java.sh
 
 WORKDIR /workspace

@@ -1,5 +1,7 @@
-# go runtime image — skibiribab/cli:${version}-go.
-# golang toolchain for `cli go lint` / `cli go test`.
+# ai runtime image — skibiribab/cli:${version}-ai.
+# The AI agent home: opencode (code-gen engine) + the ops CLIs the agent loop
+# needs (pull → plan → build → git → gh). No language toolchains — the agent
+# shells out to skibiribab/cli:<v>-<lang> images via docker for builds/tests.
 
 FROM alpine:3.21 AS src
 WORKDIR /src
@@ -7,12 +9,12 @@ COPY . .
 
 FROM alpine:3.21 AS final
 
-ENV CLI_RUNTIME=go
+ENV CLI_RUNTIME=ai
 
 COPY --from=src /src/docker/runtime /install/
 RUN apk add --no-cache bash \
     && bash /install/install-core.sh \
-    && bash /install/install-go.sh
+    && bash /install/install-ai.sh
 
 WORKDIR /workspace
 COPY --from=src /src/src/cli /opt/cli/cli

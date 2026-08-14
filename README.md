@@ -20,28 +20,30 @@ Three pillars:
 A lean, bash-first CLI for workflow automation, repository checks, and release orchestration. Every command is a thin wrapper around an existing tool; each command runs in the Docker image that owns its toolchain.
 
 ```bash
-docker run --rm -v "$PWD:/repo" -w /repo skibiribab/cli:1.2.0 sh lint .
-docker run --rm -v "$PWD:/repo" -w /repo skibiribab/cli:1.2.0-node md lint .
-docker run --rm -v "$PWD:/repo" -w /repo skibiribab/cli:1.2.0-python yml lint .
-docker run --rm -v "$PWD:/repo" -w /repo skibiribab/cli:1.2.0 git status
+docker run --rm -v "$PWD:/repo" -w /repo skibiribab/cli:1.8.0-orphanage sh lint .
+docker run --rm -v "$PWD:/repo" -w /repo skibiribab/cli:1.8.0-node md lint .
+docker run --rm -v "$PWD:/repo" -w /repo skibiribab/cli:1.8.0-python yml lint .
+docker run --rm -v "$PWD:/repo" -w /repo skibiribab/cli:1.8.0-orphanage git status
 ```
 
 If a command's tool is missing, `cli` tells you which image to use.
 
 ### Images
 
-Alpine-based, versioned tags (no `latest`):
+Alpine-based, self-contained (no shared base inheritance), versioned tags
+(`<version>-<variant>`, no `latest`, no bare aliases):
 
 | Tag | Adds | Use for |
 | --- | --- | --- |
-| `:1.2.0` (`:base-1.2.0`) | git, gh, docker-cli, opencode, shellcheck, actionlint, curl, jq-adjacent core | `sh lint`, `dockerfile lint`, `structure lint`, `git`, `gh`, `docker`, `opencode`, `integration` |
-| `:1.2.0-rust` | rust/cargo + lychee | `url`, `rust lint`, `rust test` |
-| `:1.2.0-node` | node/npm + markdownlint + jq | `md lint`, `json lint`, `tasks lint`, `typescript lint/test`, `javascript lint/test`, `node` |
-| `:1.2.0-python` | python3 + yamllint | `yml lint`, `python lint/test` |
-| `:1.2.0-media` | ffmpeg, imagemagick, poppler | `pdf lint`, `png/jpg/... lint`, `mp4/... scan/compress` |
-| `:1.2.0-cpp` | gcc/g++/make/cmake/clang-format | `cpp lint/test` |
-| `:1.2.0-go` | golang | `go lint/test` |
-| `:1.2.0-java` | OpenJDK 21/Maven/Gradle | `java lint/test` |
+| `:<v>-orphanage` | shellcheck, actionlint, git, gh, docker-cli, curl, jq, coreutils, qpdf, poppler, lychee, buildx, texlive+latexmk | `sh lint`, `actions lint`, `dockerfile lint`, `pdf lint`, `url`, `tex build`, `git`, `gh`, `docker`, `integration` |
+| `:<v>-ai` | opencode (musl; only `libstdc++` runtime dep) + git, gh, docker-cli | `opencode`, the agent loop |
+| `:<v>-node` | node/npm + markdownlint | `md lint`, `json lint`, `tasks lint`, `tree`, `repo lint`, `typescript/javascript lint/test` |
+| `:<v>-python` | python3 + yamllint | `yml lint`, `python lint/test` |
+| `:<v>-rust` | rust/cargo | `rust lint/test` |
+| `:<v>-media` | ffmpeg, imagemagick | `png/jpg/... lint`, `mp4/... scan/compress` |
+| `:<v>-cpp` | gcc/g++/make/cmake/clang-format | `cpp lint/test` |
+| `:<v>-go` | golang | `go lint/test` |
+| `:<v>-java` | OpenJDK 21/Maven/Gradle | `java lint/test` |
 
 Every dependency — Alpine base digest, apk packages, static binaries, npm packages — is pinned in `docker/runtime/versions.env`.
 
@@ -128,8 +130,8 @@ docs/                   docs
 
 Two workflows, Docker-only:
 
-- **PR** (`.github/workflows/test.yml`) — runs as many validations as possible: version gate (**bare `X.Y.Z`**, strictly greater than the greatest **git release tag** *and* the greatest published **Docker Hub** tag — the bump is embedded in the PR), lint (md/json/yml/sh/dockerfile/actionlint), bats, all 8 runtime images + full per-variant smoke (each image is distinct — other language toolchains are asserted absent), integration.
-- **Publish** (`.github/workflows/release.yml`) — on push to `main` it tags the merged `VERSION` (`X.Y.Z`, no `v`; only minor-bumps as a fallback for direct pushes so we always release strictly above what's live); on a version tag it builds + pushes every image and runs a slim pull-back smoke. See [`docs/ci-workflows.md`](docs/ci-workflows.md).
+- **PR** (`.github/workflows/test.yml`) — runs as many validations as possible: version gate (**bare `X.Y.Z`**, strictly greater than the greatest **git release tag** *and* the greatest published **Docker Hub** version, derived from `<version>-<variant>` tags — the bump is embedded in the PR), lint (md/json/yml via node/python, sh/actions/dockerfile via orphanage), bats, all 9 runtime images + full per-variant smoke (each image is distinct — other language toolchains are asserted absent), integration.
+- **Publish** (`.github/workflows/release.yml`) — on push to `main` it tags the merged `VERSION` (`X.Y.Z`, no `v`; only minor-bumps as a fallback for direct pushes so we always release strictly above what's live); on a version tag it builds + pushes every image (`<X.Y.Z>-<variant>`) and runs a slim pull-back smoke. See [`docs/ci-workflows.md`](docs/ci-workflows.md).
 
 Secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `PAT_TOKEN` — see [`docs/secrets.md`](docs/secrets.md).
 

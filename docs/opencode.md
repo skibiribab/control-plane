@@ -1,7 +1,9 @@
 # OpenCode (`cli opencode`)
 
-All AI interactions go through **`cli opencode`** (base image). Deterministic git
-operations stay on **`cli git`**.
+All AI interactions go through **`cli opencode`** (ai image — opencode's home).
+The ai image installs only `libstdc++` as a runtime dependency for the musl
+binary; `git`/`gh`/`docker-cli` are shelled-out commands, not dependencies.
+Deterministic git operations stay on **`cli git`**.
 
 ## Commands
 

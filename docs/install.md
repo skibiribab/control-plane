@@ -9,15 +9,16 @@ package. Versioned tags are published to Docker Hub as
 Pull the image for the toolchain you need and run `cli` against a mounted repo:
 
 ```bash
-alias cli='docker run --rm -v "$PWD:/repo" -w /repo skibiribab/cli:1.2.0'
-alias cli-node='docker run --rm -v "$PWD:/repo" -w /repo skibiribab/cli:1.2.0-node'
+alias cli='docker run --rm -v "$PWD:/repo" -w /repo skibiribab/cli:1.8.0-orphanage'
+alias cli-node='docker run --rm -v "$PWD:/repo" -w /repo skibiribab/cli:1.8.0-node'
 
 cli git status
 cli-node md lint .
 ```
 
-Tags: `:1.2.0` (base) and `-rust`, `-node`, `-python`, `-media`, `-cpp`, `-go`,
-`-java`. See [docker.md](docker.md) for the full table.
+Tags: `<version>-<variant>` with variants `-orphanage`, `-ai`, `-rust`, `-node`,
+`-python`, `-media`, `-cpp`, `-go`, `-java`. See [docker.md](docker.md) for the
+full table.
 
 ## Configuration (env only)
 
@@ -46,7 +47,7 @@ files. Common ones:
 | `CLI_LINK_POLICY` | cross-folder link policy (`md link`) |
 | `CLI_TREE` | layout manifest (`structure lint`) |
 | `CLI_JSON=1` | JSON output for lint commands |
-| `CLI_RUNTIME` | baked-in image variant (base/rust/node/…) |
+| `CLI_RUNTIME` | baked-in image variant (orphanage/ai/node/python/rust/cpp/go/java/media) |
 
 Config precedence: `--config FILE` flag > env var > the tool's native auto-detect.
 
@@ -54,7 +55,7 @@ In Docker, pass with `-e`:
 
 ```bash
 docker run --rm -e GITHUB_TOKEN="$GITHUB_TOKEN" -v "$PWD:/repo" -w /repo \
-  skibiribab/cli:1.2.0 gh issue pick
+  skibiribab/cli:1.8.0-orphanage gh issue pick
 ```
 
 ## Using gh locally

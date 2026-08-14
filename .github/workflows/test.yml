@@ -81,7 +81,7 @@ jobs:
   lint:
     name: Lint (md/json/sh/dockerfile/actions)
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     steps:
       - id: checkout
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
@@ -93,6 +93,10 @@ jobs:
         name: docker build — lint (node)
         timeout-minutes: 12
         run: docker build -f docker/node.dockerfile -t ci-lint-node .
+      - id: build-orphanage
+        name: docker build — lint (orphanage)
+        timeout-minutes: 25
+        run: docker build -f docker/orphanage.dockerfile -t ci-lint-orphanage .
       - id: repo-lint
         name: cli repo lints (md/json/whitespace)
         timeout-minutes: 6
@@ -107,14 +111,14 @@ jobs:
         name: cli sh lint (shellcheck)
         timeout-minutes: 6
         run: |
-          docker run --rm -v "${{ github.workspace }}:/repo" -w /repo ci-lint-node \
+          docker run --rm -v "${{ github.workspace }}:/repo" -w /repo ci-lint-orphanage \
             cli sh lint .
       - id: actionlint
-        name: actionlint
+        name: cli actions lint
         timeout-minutes: 3
         run: |
-          docker run --rm -v "${{ github.workspace }}:/repo" -w /repo ci-lint-node \
-            sh -ec 'actionlint .github/workflows/*.yml'
+          docker run --rm -v "${{ github.workspace }}:/repo" -w /repo ci-lint-orphanage \
+            cli actions lint .
       - id: dockerfile-lint
         name: cli dockerfile lint
         timeout-minutes: 6
@@ -122,7 +126,7 @@ jobs:
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v "${{ github.workspace }}:/repo" -w /repo \
-            ci-lint-node cli dockerfile lint .
+            ci-lint-orphanage cli dockerfile lint .
       - id: cleanup
         name: docker — cleanup
         timeout-minutes: 3
@@ -178,11 +182,11 @@ jobs:
   runtime-build:
     name: Runtime image (${{ matrix.variant }})
     runs-on: ubuntu-latest
-    timeout-minutes: 27
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
-        variant: [base, rust, node, python, cpp, go, media, java]
+        variant: [orphanage, node, python, rust, cpp, go, java, media, ai]
     steps:
       - id: checkout
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
@@ -192,7 +196,7 @@ jobs:
         timeout-minutes: 3
       - id: runtime-build
         name: docker build — ${{ matrix.variant }}
-        timeout-minutes: 15
+        timeout-minutes: 22
         run: |
           docker build -f docker/${{ matrix.variant }}.dockerfile \
             -t ci-runtime-${{ matrix.variant }} .

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# cli whitespace lint — trailing whitespace over text files (base image).
+# cli whitespace lint — trailing whitespace over text files (orphanage image).
 # shellcheck disable=SC2317,SC2034  # callbacks invoked via lint_each
 set -euo pipefail
 
 cli_whitespace_help() {
   cat <<'EOF'
 cli whitespace lint [PATH] [--config FILE] [--json] — trailing whitespace check
-over .md .js .json .yml .yaml .txt (base image).
+over .md .js .json .yml .yaml .txt (orphanage image).
 --config: file listing paths to skip (one per line).
 PATH: a single file or a subtree root to scan (default ".").
 EOF

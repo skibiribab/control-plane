@@ -62,7 +62,7 @@ ROOT="${BATS_TEST_DIRNAME}/../.."
 }
 
 @test "missing tool recommends the owning image" {
-  # markdownlint only exists in the node image; base must recommend it.
+  # markdownlint only exists in the node image; orphanage must recommend it.
   if command -v markdownlint >/dev/null 2>&1; then
     skip "markdownlint present"
   fi

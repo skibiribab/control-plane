@@ -9,18 +9,22 @@ current image, `cli` fails and recommends the owning image.
 
 | Noun | Verb | Tool | Image |
 | --- | --- | --- | --- |
-| `sh` | lint | shellcheck | base |
-| `dockerfile` | lint | `docker build --check` (needs socket) | base |
-| `structure` | lint | `config/tree.json` (node) or `config/tree.txt` | node/base |
-| `whitespace` | lint | trailing-whitespace scan | base |
-| `ignore` | lint | enforce `.gitignore` allowlist + `.dockerignore` (`.git` only) | base |
-| `url` | (default) | lychee | rust |
+| `sh` | lint | shellcheck | orphanage |
+| `actions` | lint | actionlint | orphanage |
+| `dockerfile` | lint | `docker build --check` (needs socket) | orphanage |
+| `structure` | lint | `config/tree.json` (node) or `config/tree.txt` | orphanage |
+| `whitespace` | lint | trailing-whitespace scan | orphanage |
+| `ignore` | lint | enforce `.gitignore` allowlist + `.dockerignore` (`.git` only) | orphanage |
+| `url` | (default) | lychee | orphanage |
+| `pdf` | lint | qpdf / pdfinfo (poppler) | orphanage |
+| `tex` | build | latexmk over `*.tex` | orphanage |
+| `check` | (default) | image-adaptive: run every generic-lint verb the current image has, skip missing tools | current image |
 | `md` | lint / link / table | markdownlint-cli · internal links · marked tables | node |
-| `json` | lint | jq | node |
-| `tasks` | lint | jq (`tasks/tasks.pairs.json`) | node |
+| `json` | lint | node (`JSON.parse`) | node |
+| `tasks` | lint | node (`tasks/tasks.pairs.json`) | node |
+| `tree` | generate / validate | sha256/size layout manifest | node |
 | `repo` | lint | composite: md lint+link+table, json, structure, whitespace | node |
 | `yml` / `yaml` | lint | yamllint | python |
-| `pdf` | lint | pdfinfo | media |
 | `png` `jpg` `jpeg` `gif` `webp` `svg` `bmp` | lint | identify (ImageMagick) | media |
 | `mp4` `mov` `mkv` `webm` | scan / compress | ffprobe / ffmpeg | media |
 
@@ -37,14 +41,14 @@ current image, `cli` fails and recommends the owning image.
 | `javascript` | node --check / eslint | npm test | node |
 | `node` | runtime passthrough (`version`, `check`, npm) | — | node |
 
-## Base-operation nouns
+## Ops nouns
 
 | Noun | What |
 | --- | --- |
 | `git` | git passthrough + `branch`/`log`/`diff`/`rev-list` composites + `zip`/`backup`/`restore`/`export` |
 | `gh` | passthrough + issue CRUD (`create`/`update`/`delete`/`comment`) + recipes (`issue pick`/`plan`/`craft pr`) + Projects v2 (`project list/view/create/update/delete` + `item list/add/remove`) + `release`/`policy list` |
 | `docker` | monitor/cleanup (`ps` `containers` `images` `stats` `df` `stop` `reset` …) |
-| `opencode` | setup / `plan` `summarize` `code` `categorize` / chat sessions |
+| `opencode` | setup / `plan` `summarize` `code` `categorize` / chat sessions (ai image) |
 | `integration` | `list` (tool→image) / `check` (current image coverage) |
 
 ## Common flags

@@ -29,9 +29,9 @@ cli_repo_main() {
   # shellcheck source=/dev/null
   source "${CLI_ROOT}/commands/node/json.sh"
   # shellcheck source=/dev/null
-  source "${CLI_ROOT}/commands/base/structure.sh"
+  source "${CLI_ROOT}/commands/orphanage/structure.sh"
   # shellcheck source=/dev/null
-  source "${CLI_ROOT}/commands/base/whitespace.sh"
+  source "${CLI_ROOT}/commands/orphanage/whitespace.sh"
 
   local overall=0
   cli_md_main lint "$@" || overall=1

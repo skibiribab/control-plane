@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# Tests for file-type lint commands (cli <noun> lint) that run with base-image
+# Tests for file-type lint commands (cli <noun> lint) that run with orphanage
 # tools (bash, shellcheck).
 
 CLI="${BATS_TEST_DIRNAME}/../cli"
@@ -40,8 +40,8 @@ teardown() {
   [[ "$output" == *'"ok":true'* ]]
 }
 
-@test "structure lint reports missing tree.txt" {
+@test "structure lint skips without a tree manifest" {
   run "$CLI" structure lint "$TMP"
-  [ "$status" -eq 1 ]
-  [[ "$output" == *"tree.txt not found"* ]]
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"skipped"* ]]
 }

@@ -16,7 +16,7 @@ lib/             shared bash libraries (no command logic)
   files.sh       iter_files / noun_args / collect_files
   media.sh       pdf/png/video lint/scan/compress helpers
 src/commands/    one file per noun, grouped by owning image
-  base/          sh.sh dockerfile.sh structure.sh ignore.sh git.sh gh.sh docker.sh opencode.sh integration.sh
+  orphanage/     sh.sh actions.sh check.sh dockerfile.sh structure.sh ignore.sh git.sh gh.sh docker.sh opencode.sh integration.sh url.sh pdf.sh tex.sh whitespace.sh
   rust/ node/ python/ media/ cpp/ go/ java/
 docker/          Dockerfiles (multi-stage) + runtime/install-*.sh + versions.env
 scripts/         build/release/PR pipeline helpers (bash)
@@ -32,7 +32,10 @@ scripts/         build/release/PR pipeline helpers (bash)
 
 - `lib/tools.sh` maps each binary to the image that owns it.
 - `require_tool <bin>` fails with an image recommendation when the binary is
-  missing (e.g. `cli md lint` in `-base` → "Use the node image").
+  missing (e.g. `cli md lint` in `-orphanage` → "Use the node image").
+- `lib/verbs.sh` is the per-image verb registry: `cli integration list` surfaces
+  it and `cli check` (in `src/commands/orphanage/check.sh`) runs every
+  generic-lint verb the current image has, skipping missing tools.
 - Each Dockerfile bakes `ENV CLI_RUNTIME=<image>` so messages know the current
   image.
 - `cli integration check` reports the current image's coverage from the same
@@ -40,12 +43,22 @@ scripts/         build/release/PR pipeline helpers (bash)
 
 ## Images
 
-Alpine base (version-pinned) → `docker/{base,rust,node,python,media,cpp,go,java}.dockerfile`.
+Alpine base (version-pinned) → `docker/{orphanage,ai,node,python,rust,cpp,go,java,media}.dockerfile`.
 Multi-stage: a `src` stage does `COPY . .` (whole context); the `final` stage
 installs the toolchain (`docker/runtime/install-*.sh`, pinned in `versions.env`)
 and copies only the relevant artifacts (`/cli /lib /commands /VERSION`) to
 `/opt/cli`, then symlinks `/usr/local/bin/cli`. The binary exists only inside
 the built image; the repo carries source only.
+
+**Minimal dependencies:** each image installs only its language basics plus the
+**shared** tooling that many repos consume (markdownlint in node,
+shellcheck/actionlint in orphanage) — no shared base inheritance, no
+speculative toolchains, nothing repo-specific. Repo-specific tooling is
+installed by the consumer repo as `package.json`/Makefile scripts
+(`docs/consumer-tooling.md`). Verify a tool's real runtime deps before adding
+packages (`ldd` on the binary / `apk info -d <pkg>`) and prefer static/musl
+builds. `opencode` runs standalone on Alpine with only `libstdc++`;
+`git`/`gh`/`docker-cli` are shelled-out commands, not dependencies.
 
 ## Ignore-file policy
 

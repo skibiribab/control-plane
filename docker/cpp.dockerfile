@@ -1,5 +1,5 @@
 # cpp runtime image — skibiribab/cli:${version}-cpp.
-# base + gcc/g++/make/cmake/clang-format for C/C++ lint/test.
+# gcc/g++/make/cmake/clang for C/C++ lint/test.
 
 FROM alpine:3.21 AS src
 WORKDIR /src
@@ -11,7 +11,7 @@ ENV CLI_RUNTIME=cpp
 
 COPY --from=src /src/docker/runtime /install/
 RUN apk add --no-cache bash \
-    && bash /install/install-base.sh \
+    && bash /install/install-core.sh \
     && bash /install/install-cpp.sh
 
 WORKDIR /workspace

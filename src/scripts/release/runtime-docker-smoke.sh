@@ -6,7 +6,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../_common.sh"
 
 _run_runtime_docker_smoke() {
   local version="${CLI_VERSION:?CLI_VERSION required}"
-  local image="${RUNTIME_IMAGE:?RUNTIME_IMAGE required}:${version}"
+  local image="${RUNTIME_IMAGE:?RUNTIME_IMAGE required}:${version}-orphanage"
 
   docker run --rm \
     -e CLI_PROFILE=test \

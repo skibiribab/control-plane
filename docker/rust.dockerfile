@@ -1,5 +1,5 @@
 # rust runtime image — skibiribab/cli:${version}-rust.
-# base + rust/cargo toolchain + lychee (url).
+# rust/cargo toolchain only (lychee lives in the orphanage image).
 
 FROM alpine:3.21 AS src
 WORKDIR /src
@@ -11,7 +11,7 @@ ENV CLI_RUNTIME=rust
 
 COPY --from=src /src/docker/runtime /install/
 RUN apk add --no-cache bash \
-    && bash /install/install-base.sh \
+    && bash /install/install-core.sh \
     && bash /install/install-rust.sh
 
 WORKDIR /workspace

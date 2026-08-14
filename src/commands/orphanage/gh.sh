@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# cli gh — GitHub passthrough + recipes + issue CRUD + Projects v2 (base image).
+# cli gh — GitHub passthrough + recipes + issue CRUD + Projects v2 (orphanage image).
 # Deterministic git/gh operations; AI text via the opencode CLI when requested.
 # Limits act as pre-flight rate limiters (lib/gh_limits.sh) before any write.
 set -euo pipefail
@@ -519,6 +519,6 @@ gh_release() {
   image="$(env_or RUNTIME_IMAGE skibiribab/cli)"
   gh release create "$tag" \
     --title "skibiribab-cli ${version}" \
-    --notes "Docker images: ${image}:${version} (+ -base/-rust/-node/-python/-cpp/-go/-media/-java)"
+    --notes "Docker images: ${image}:${version} (+ -orphanage/-ai/-node/-python/-rust/-cpp/-go/-java/-media)"
   cli_ok "created GitHub release ${tag}"
 }

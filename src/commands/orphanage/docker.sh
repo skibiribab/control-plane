@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# cli docker — monitor/cleanup via the docker CLI (base image, socket).
+# cli docker — monitor/cleanup via the docker CLI (orphanage image, socket).
 set -euo pipefail
 
 cli_docker_help() {

@@ -11,7 +11,7 @@ configure`. Set them when running a container with `-e`, or in your shell.
 
 ```bash
 docker run --rm -e GITHUB_TOKEN="$GITHUB_TOKEN" -e DEEPSEEK_API_KEY="$DEEPSEEK_API_KEY" \
-  -v "$PWD:/repo" -w /repo skibiribab/cli:1.2.0 gh issue pick
+  -v "$PWD:/repo" -w /repo skibiribab/cli:1.8.0-orphanage gh issue pick
 ```
 
 For local use, export in your shell or add to `~/.profile`; inside GitHub

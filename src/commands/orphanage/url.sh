@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# cli url — link check via lychee (rust image).
+# cli url — link check via lychee (orphanage image; cross-cutting standalone CLI).
 set -euo pipefail
 
 cli_url_help() {
   cat <<'EOF'
-cli url [PATH] [--json] — check links in the repo with lychee (rust image).
+cli url [PATH] [--json] — check links in the repo with lychee (orphanage image).
 EOF
 }
 

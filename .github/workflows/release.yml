@@ -169,7 +169,7 @@ jobs:
         run: |
           set -euo pipefail
           bash src/scripts/release/build-runtime-image.sh
-          docker run --rm "${RUNTIME_IMAGE}:${CLI_VERSION}" --version | grep -Fxq "${CLI_VERSION}"
+          docker run --rm "${RUNTIME_IMAGE}:${CLI_VERSION}-orphanage" --version | grep -Fxq "${CLI_VERSION}"
       - id: ci-tools
         name: docker build — ci-tools
         timeout-minutes: 3

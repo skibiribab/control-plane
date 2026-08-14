@@ -13,7 +13,4 @@ for variant in "${RUNTIME_VARIANTS[@]}"; do
     -t "$(runtime_variant_tag "$version" "$variant")" .
 done
 
-# Explicit alias for the base image (bare :${version} is the default pull).
-docker tag "${RUNTIME_IMAGE}:${version}" "${RUNTIME_IMAGE}:base-${version}"
-
-echo "built runtime images: ${RUNTIME_IMAGE}:${version} (+ variants)"
+echo "built runtime images: ${RUNTIME_IMAGE}:${version}-* (${RUNTIME_VARIANTS[*]})"
