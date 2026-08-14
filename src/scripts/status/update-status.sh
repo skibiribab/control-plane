@@ -6,7 +6,14 @@ set -euo pipefail
 # shellcheck source=/dev/null
 source "$(dirname "${BASH_SOURCE[0]}")/../_common.sh"
 
-: "${GH_TOKEN:?GH_TOKEN required}"
+if [[ -z "${GH_TOKEN:-}" ]]; then
+  if command -v gh >/dev/null 2>&1; then
+    if GH_TOKEN="$(gh auth token 2>/dev/null)"; then
+      [[ -n "$GH_TOKEN" ]] && export GH_TOKEN
+    fi
+  fi
+fi
+: "${GH_TOKEN:?GH_TOKEN required — set GH_TOKEN or run in an authenticated gh environment}"
 OWNER="${STATUS_OWNER:-skibiribab}"
 TARGET_REPO="${STATUS_TARGET_REPO:-${OWNER}/skibiribab}"
 PR_BRANCH="${STATUS_PR_BRANCH:-chore/repo-status}"

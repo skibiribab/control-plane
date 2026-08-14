@@ -36,3 +36,33 @@ printf '%s' "$GITHUB_PAT"     | gh secret set PAT_TOKEN
 ```
 
 **Treat the Docker Hub access token as a credential:** if it ever leaks (e.g. pasted into a chat or log), rotate it in Docker Hub and re-set `DOCKERHUB_TOKEN`.
+
+## Token slots (predefined scheme)
+
+Named secret slots on the content repos (`control-plane`, `private`, `interview`,
+`browser-extensions`, `radar-alerts`, `browser-games`). Today **all four hold the
+same account-wide token** (a single master key); the naming is the scheme — when
+you tighten access later, fill each slot with its own scoped token and the
+workflows already reference the right slot.
+
+| Slot | Meaning | Consumed by |
+| --- | --- | --- |
+| `PUBLIC_REPO_READ_TOKEN` | read public repos | *(reserved — public reads are anonymous)* |
+| `PUBLIC_REPO_WRITE_TOKEN` | write to public repos | `update-status.yml` (listener) · `repo-status-notify.yml` + per-repo `update-status.yml` callers (dispatch) |
+| `PRIVATE_REPO_READ_TOKEN` | read private repos | *(reserved — future)* |
+| `PRIVATE_REPO_WRITE_TOKEN` | write to private repos | *(reserved — future)* |
+
+Set all slots with the current master token (same value everywhere):
+
+```bash
+TOKEN="$(gh auth token)"
+for slot in PUBLIC_REPO_READ_TOKEN PUBLIC_REPO_WRITE_TOKEN \
+            PRIVATE_REPO_READ_TOKEN PRIVATE_REPO_WRITE_TOKEN; do
+  for r in control-plane private interview browser-extensions radar-alerts browser-games; do
+    gh secret set "$slot" -R "skibiribab/$r" --body "$TOKEN"
+  done
+done
+```
+
+`cli repo status` uses `GH_TOKEN` and falls back to the local `gh auth token`, so
+local runs need no secret at all.
