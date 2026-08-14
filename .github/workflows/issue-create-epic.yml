@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.repo }}
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.GH_TOKEN_REPO_WRITE }}
 
       # ai marker: issue-create-epic-gh
       # TODO(ai): decompose epic_title/epic_body into child issues following the

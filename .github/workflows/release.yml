@@ -88,7 +88,7 @@ jobs:
         name: Tag release (merged VERSION)
         if: steps.guard.outputs.skip != 'true'
         env:
-          PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
+          PAT_TOKEN: ${{ secrets.GH_TOKEN_REPO_WRITE }}
         run: |
           set -euo pipefail
           next="${{ steps.version.outputs.next }}"

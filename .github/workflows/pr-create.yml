@@ -30,7 +30,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ inputs.repo }}
-          token: ${{ secrets.PAT_TOKEN }}
+          token: ${{ secrets.GH_TOKEN_REPO_WRITE }}
           ref: ${{ github.head_ref }}
 
       # ai marker: pr-create-gh
