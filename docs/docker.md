@@ -28,20 +28,20 @@ provides git/docker in CI). All tags are versioned (`<version>-<variant>`, no
 ### Sizes
 
 Compressed size on Docker Hub (`<version>-<variant>` tag, `size` field),
-re-measured on each release. `orphanage`/`ai` are new in `1.8.0` — shown at
-local **uncompressed** measure until first publish.
+re-measured on each release. Measured at `1.8.0` (first release of the
+self-contained variant set).
 
 | Variant | Size |
 | --- | --- |
-| `orphanage` | ~475 MiB (local, uncompressed) |
-| `ai` | ~94 MiB (local, uncompressed) |
-| `node` | 134 MiB |
-| `python` | 112 MiB |
-| `rust` | 304 MiB |
-| `cpp` | 357 MiB |
-| `go` | 221 MiB |
-| `java` | 394 MiB |
-| `media` | 151 MiB |
+| `orphanage` | 475 MiB |
+| `ai` | 95 MiB |
+| `node` | 41 MiB |
+| `python` | 22 MiB |
+| `rust` | 206 MiB |
+| `cpp` | 267 MiB |
+| `go` | 130 MiB |
+| `java` | 304 MiB |
+| `media` | 56 MiB |
 
 ### Dependencies (per image)
 

@@ -20,32 +20,31 @@ placement — what matters is the thing being validated (see the placement rule)
 ## Table
 
 Sizes are the image's compressed size on Docker Hub (`<version>-<variant>` tag,
-`size` field), refreshed on each release. `orphanage`/`ai` are new in `1.8.0` —
-shown at local uncompressed measure until first publish.
+`size` field), refreshed on each release. Measured at `1.8.0`.
 
 | Command / tool | Owning image | Image size |
 | --- | --- | --- |
-| `sh lint` (shellcheck) | orphanage | ~475 MiB (local; TBD) |
-| `actions lint` (actionlint) | orphanage | ~475 MiB (local; TBD) |
-| `dockerfile lint` (`docker build --check`, needs socket) | orphanage | ~475 MiB (local; TBD) |
-| `structure lint` / `ignore lint` (bash) | orphanage | ~475 MiB (local; TBD) |
-| `url` (lychee) | orphanage | ~475 MiB (local; TBD) |
-| `pdf lint` (qpdf / pdfinfo) | orphanage | ~475 MiB (local; TBD) |
-| `tex build` (latexmk / texlive) | orphanage | ~475 MiB (local; TBD) |
-| `git` / `gh` / `docker` | orphanage | ~475 MiB (local; TBD) |
-| `opencode` | ai | ~94 MiB (local; TBD) |
-| `md lint` / `md link` / `md table` (markdownlint-cli) | node | 134 MiB |
-| `json lint` / `tasks lint` (node) | node | 134 MiB |
-| `tree generate/validate` (node) | node | 134 MiB |
-| `repo lint` (composite) | node | 134 MiB |
-| `typescript` / `javascript` / `node` / `npm` / `npx` | node | 134 MiB |
-| `yml lint` (yamllint) | python | 112 MiB |
-| `python lint` / `python test` (python3) | python | 112 MiB |
-| `png/jpg/… lint` (identify) / `mp4/…` (ffmpeg) | media | 151 MiB |
-| `cpp lint` / `cpp test` (gcc/g++/clang) | cpp | 357 MiB |
-| `go lint` / `go test` (go) | go | 221 MiB |
-| `java lint` / `java test` (openjdk/maven/gradle) | java | 394 MiB |
-| `rust lint` / `rust test` (cargo) | rust | 304 MiB |
+| `sh lint` (shellcheck) | orphanage | 475 MiB |
+| `actions lint` (actionlint) | orphanage | 475 MiB |
+| `dockerfile lint` (`docker build --check`, needs socket) | orphanage | 475 MiB |
+| `structure lint` / `ignore lint` (bash) | orphanage | 475 MiB |
+| `url` (lychee) | orphanage | 475 MiB |
+| `pdf lint` (qpdf / pdfinfo) | orphanage | 475 MiB |
+| `tex build` (latexmk / texlive) | orphanage | 475 MiB |
+| `git` / `gh` / `docker` | orphanage | 475 MiB |
+| `opencode` | ai | 95 MiB |
+| `md lint` / `md link` / `md table` (markdownlint-cli) | node | 41 MiB |
+| `json lint` / `tasks lint` (node) | node | 41 MiB |
+| `tree generate/validate` (node) | node | 41 MiB |
+| `repo lint` (composite) | node | 41 MiB |
+| `typescript` / `javascript` / `node` / `npm` / `npx` | node | 41 MiB |
+| `yml lint` (yamllint) | python | 22 MiB |
+| `python lint` / `python test` (python3) | python | 22 MiB |
+| `png/jpg/… lint` (identify) / `mp4/…` (ffmpeg) | media | 56 MiB |
+| `cpp lint` / `cpp test` (gcc/g++/clang) | cpp | 267 MiB |
+| `go lint` / `go test` (go) | go | 130 MiB |
+| `java lint` / `java test` (openjdk/maven/gradle) | java | 304 MiB |
+| `rust lint` / `rust test` (cargo) | rust | 206 MiB |
 
 ## How to see coverage
 
