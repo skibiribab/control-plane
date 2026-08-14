@@ -1,0 +1,11 @@
+# Control-plane yamllint policy — ops workflows favor long lines and no
+# document-start marker; test fixtures include intentionally-invalid YAML.
+extends: default
+rules:
+  line-length: disable
+  document-start: disable
+  truthy: disable
+  comments: disable
+  comments-indentation: disable
+ignore: |
+  src/tests/fixtures/

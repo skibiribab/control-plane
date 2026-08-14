@@ -4,6 +4,7 @@
 !.editorconfig
 !.gitignore
 !.markdownlint.json
+!.yamllint
 !LICENSE
 !README.md
 !VERSION
