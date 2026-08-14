@@ -77,3 +77,8 @@ ENTRYPOINT ["bash", "src/scripts/release/publish-smoke.sh"]
 
 FROM ci-tools AS ci-github-release
 ENTRYPOINT ["bash", "src/scripts/release/create-github-release.sh"]
+
+FROM ci-tools AS ci-status-update
+RUN . /workspace/docker/runtime/versions.env \
+    && apk add --no-cache "jq=${APK_JQ}"
+ENTRYPOINT ["bash", "src/scripts/status/update-status.sh"]
