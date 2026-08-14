@@ -19,9 +19,9 @@ TARGET_REPO="${STATUS_TARGET_REPO:-${OWNER}/skibiribab}"
 PR_BRANCH="${STATUS_PR_BRANCH:-chore/repo-status}"
 PR_TITLE="${STATUS_PR_TITLE:-chore: refresh repo status}"
 
-# Ordered by theme number (0-5); the profile repo itself is intentionally absent.
+# Ordered by theme number; the profile repo itself and the standalone private
+# repo are intentionally absent.
 REPOS=(
-  "0|private"
   "1|control-plane"
   "2|interview"
   "3|browser-extensions"
