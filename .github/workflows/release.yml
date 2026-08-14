@@ -1,8 +1,8 @@
 name: Publish
 
 # Tag-driven publish: git tag X.Y.Z → docker build → docker push → smoke → GitHub release.
-# Tags are bare x.y.z (no v prefix); VERSION is bumped in the PR, so the main-push
-# auto-tag job only tags the merged VERSION (bumps only as a fallback).
+# Tags are bare x.y.z (no v prefix); VERSION must be bumped in the merged PR, so the
+# main-push auto-tag job only tags the merged VERSION (direct main pushes are blocked).
 
 on:
   workflow_dispatch:
@@ -85,7 +85,7 @@ jobs:
             echo "next=${next}"
           } >> "$GITHUB_OUTPUT"
       - id: tag
-        name: Tag release (bump VERSION only if stale)
+        name: Tag release (merged VERSION)
         if: steps.guard.outputs.skip != 'true'
         env:
           PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
@@ -94,15 +94,10 @@ jobs:
           next="${{ steps.version.outputs.next }}"
           current="${{ steps.version.outputs.current }}"
           if [[ "$next" != "$current" ]]; then
-            printf '%s\n' "$next" > VERSION
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add VERSION
-            git commit -m "chore(release): ${next}"
-            git push origin main
-          else
-            echo "VERSION already bumped in the merged PR (${current}) — tagging as-is"
+            echo "::error::VERSION (${current}) is stale — bump it to ${next} in the merged PR; direct main pushes are blocked"
+            exit 1
           fi
+          echo "VERSION bumped in the merged PR (${current}) — tagging as-is"
           git tag "${next}"
           if [[ -n "$PAT_TOKEN" ]]; then
             git remote set-url origin "https://x-access-token:${PAT_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
