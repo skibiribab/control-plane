@@ -44,21 +44,22 @@ jobs:
         run: |
           set -euo pipefail
           prs="${{ inputs.pr_number }}"
+          max_attempts="${{ inputs.max_attempts }}"
           if [ -z "$prs" ]; then
             prs=$(gh pr list --repo "${{ inputs.repo }}" --state open --limit 100 --json number --jq '.[].number' | tr '\n' ' ')
           fi
           for pr in $prs; do
             n=$(gh pr view "$pr" --repo "${{ inputs.repo }}" --json comments \
               --jq '[.comments[].body] | map(select(startswith("<!-- ai-fix-attempt"))) | length')
-            echo "PR #$pr: $n fix attempts (max ${{ inputs.max_attempts }})"
-            if [ "$n" -ge "${{ inputs.max_attempts }}" ]; then
+            echo "PR #$pr: $n fix attempts (max $max_attempts)"
+            if (( n >= max_attempts )); then
               title=$(gh pr view "$pr" --repo "${{ inputs.repo }}" --json title --jq .title)
               gh pr comment "$pr" --repo "${{ inputs.repo }}" --body \
-                "ai-coder janitor: closing after $n failed fix attempts (max ${{ inputs.max_attempts }}). Tracking issue opened."
+                "ai-coder janitor: closing after $n failed fix attempts (max $max_attempts). Tracking issue opened."
               gh pr close "$pr" --repo "${{ inputs.repo }}" --comment "Closed by ai-coder janitor (stuck)."
               gh issue create --repo "${{ inputs.repo }}" --title "Stuck PR #$pr — $title" \
                 --label ai/stuck \
-                --body "PR #$pr exceeded ${{ inputs.max_attempts }} fix attempts and was closed by ai-coder janitor. Reopen as a fresh task or review manually."
+                --body "PR #$pr exceeded $max_attempts fix attempts and was closed by ai-coder janitor. Reopen as a fresh task or review manually."
               echo "PR #$pr: closed + tracking issue opened"
             fi
           done

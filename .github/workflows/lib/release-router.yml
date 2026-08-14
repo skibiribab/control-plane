@@ -14,7 +14,6 @@ on:
       ref:
         type: string
         required: true
-        default: main
       image:
         type: string
         required: false

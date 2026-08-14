@@ -27,7 +27,7 @@ cli_actions_main() {
   fi
   local files=() f
   while IFS= read -r -d '' f; do files+=("$f"); done < <(
-    find "$workflows" -maxdepth 1 \( -name '*.yml' -o -name '*.yaml' \) | sort
+    find "$workflows" \( -name '*.yml' -o -name '*.yaml' \) -print0 | sort -z
   )
   if ((${#files[@]} == 0)); then
     printf 'actions lint skipped: no workflow files\n'

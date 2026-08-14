@@ -105,20 +105,20 @@ jobs:
           for check in "md lint" "md link" "md table" "json lint" "whitespace lint"; do
             # shellcheck disable=SC2086
             docker run --rm -v "${{ github.workspace }}:/repo" -w /repo ci-lint-node \
-              cli ${check} .
+              ${check} .
           done
       - id: sh-lint
         name: cli sh lint (shellcheck)
         timeout-minutes: 6
         run: |
           docker run --rm -v "${{ github.workspace }}:/repo" -w /repo ci-lint-orphanage \
-            cli sh lint .
+            sh lint .
       - id: actionlint
         name: cli actions lint
         timeout-minutes: 3
         run: |
           docker run --rm -v "${{ github.workspace }}:/repo" -w /repo ci-lint-orphanage \
-            cli actions lint .
+            actions lint .
       - id: dockerfile-lint
         name: cli dockerfile lint
         timeout-minutes: 6
@@ -126,7 +126,7 @@ jobs:
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v "${{ github.workspace }}:/repo" -w /repo \
-            ci-lint-orphanage cli dockerfile lint .
+            ci-lint-orphanage dockerfile lint .
       - id: cleanup
         name: docker — cleanup
         timeout-minutes: 3
@@ -152,7 +152,7 @@ jobs:
         timeout-minutes: 6
         run: |
           docker run --rm -v "${{ github.workspace }}:/repo" -w /repo ci-lint-python \
-            cli yml lint .
+            yml lint .
       - id: cleanup
         name: docker — cleanup
         timeout-minutes: 3
