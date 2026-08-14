@@ -31,7 +31,7 @@ jobs:
         name: Run status update
         timeout-minutes: 5
         env:
-          GH_TOKEN: ${{ secrets.PAT_TOKEN }}
+          GH_TOKEN: ${{ secrets.PUBLIC_REPO_WRITE_TOKEN }}
         run: |
           docker run --rm --network=host \
             -e GH_TOKEN="${GH_TOKEN}" \
