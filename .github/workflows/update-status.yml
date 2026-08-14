@@ -33,7 +33,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          docker run --rm \
+          docker run --rm --network=host \
             -e GH_TOKEN="${GH_TOKEN}" \
             -e GITHUB_REPOSITORY="${GITHUB_REPOSITORY}" \
             ci-status-update
