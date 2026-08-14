@@ -7,24 +7,25 @@ set -euo pipefail
 # shellcheck source=/dev/null
 source "$(dirname "${BASH_SOURCE[0]}")/../_common.sh"
 
-variant_probe() {
-  case "$1" in
-    base)   echo "git --version" ;;
-    rust)   echo "cargo --version" ;;
-    node)   echo "node --version" ;;
-    python) echo "python3 --version" ;;
-    cpp)    echo "g++ --version" ;;
-    go)     echo "go version" ;;
-    media)  echo "ffmpeg -version" ;;
-    java)   echo "java -version" ;;
-    *)      echo "" ;;
-  esac
-}
-
 _slim_smoke() {
   local version image variant tag probe
   version="${CLI_VERSION:?CLI_VERSION required}"
   image="${RUNTIME_IMAGE:?RUNTIME_IMAGE required}"
+
+  # Nested so it survives the stage_run_with_timeout subshell.
+  variant_probe() {
+    case "$1" in
+      base)   echo "git --version" ;;
+      rust)   echo "cargo --version" ;;
+      node)   echo "node --version" ;;
+      python) echo "python3 --version" ;;
+      cpp)    echo "g++ --version" ;;
+      go)     echo "go version" ;;
+      media)  echo "ffmpeg -version" ;;
+      java)   echo "java -version" ;;
+      *)      echo "" ;;
+    esac
+  }
 
   for variant in "${RUNTIME_VARIANTS[@]}"; do
     tag="$(runtime_variant_tag "$version" "$variant")"
