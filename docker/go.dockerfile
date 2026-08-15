@@ -1,5 +1,5 @@
-# go runtime image — skibiribab/cli:${version}-go.
-# golang toolchain for `cli go lint` / `cli go test`.
+# go runtime image — skibiribab/pkg-manager:${version}-go.
+# The Go ecosystem: golang toolchain.
 
 FROM alpine:3.21 AS src
 WORKDIR /src
@@ -7,19 +7,7 @@ COPY . .
 
 FROM alpine:3.21 AS final
 
-ENV CLI_RUNTIME=go
-
 COPY --from=src /src/docker/runtime /install/
 RUN apk add --no-cache bash \
     && bash /install/install-core.sh \
     && bash /install/install-go.sh
-
-WORKDIR /workspace
-COPY --from=src /src/src/cli /opt/cli/cli
-COPY --from=src /src/src/lib /opt/cli/lib
-COPY --from=src /src/src/commands /opt/cli/commands
-COPY --from=src /src/VERSION /opt/cli/VERSION
-RUN ln -sf /opt/cli/cli /usr/local/bin/cli
-
-ENTRYPOINT ["cli"]
-CMD ["--help"]

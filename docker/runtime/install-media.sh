@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-# Install the media domain: ffmpeg (video) + imagemagick (image). PDF tooling
-# (qpdf/poppler) lives in the orphanage image.
+# Install the media domain: ffmpeg (video) + imagemagick (image).
 set -euo pipefail
 # shellcheck source=/dev/null
 source "$(dirname "${BASH_SOURCE[0]}")/versions.env"
