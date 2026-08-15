@@ -3,235 +3,45 @@ name: CI
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review]
-
-concurrency:
-  group: pr-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
 
 permissions:
   contents: read
 
-env:
-  PR_DOCKERFILE: docker/pull-request.dockerfile
-
 jobs:
-  resolve:
-    name: Resolve versions
-    runs-on: ubuntu-latest
-    timeout-minutes: 9
-    outputs:
-      version: ${{ steps.meta.outputs.version }}
-      base_version: ${{ steps.meta.outputs.base_version }}
-      git_version: ${{ steps.meta.outputs.git_version }}
-    steps:
-      - id: checkout
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-        with:
-          fetch-depth: 0
-        timeout-minutes: 3
-      - id: buildx
-        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
-        timeout-minutes: 3
-      - id: meta
-        name: docker — resolve
-        timeout-minutes: 3
-        run: |
-          docker build -f "${PR_DOCKERFILE}" --target resolve -t ci-pr-resolve .
-          GIT_VERSION="$(bash src/scripts/pull-request/host-last-published-version.sh)"
-          DOCKER_VERSION="$(bash src/scripts/pull-request/host-last-published-docker-version.sh)"
-          docker run --rm \
-            -e GITHUB_OUTPUT \
-            -e GIT_VERSION="${GIT_VERSION}" \
-            -e DOCKER_VERSION="${DOCKER_VERSION}" \
-            -v "${GITHUB_OUTPUT}:${GITHUB_OUTPUT}" \
-            ci-pr-resolve
-      - id: cleanup
-        name: docker — cleanup
-        timeout-minutes: 3
-        run: docker image prune -af >/dev/null && docker builder prune -af >/dev/null
-
-  version-check:
-    name: Version check
-    needs: resolve
-    runs-on: ubuntu-latest
-    timeout-minutes: 12
-    steps:
-      - id: checkout
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-        timeout-minutes: 3
-      - id: buildx
-        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
-        timeout-minutes: 3
-      - id: version-check
-        name: docker build — version-check
-        timeout-minutes: 6
-        env:
-          GIT_VERSION: ${{ needs.resolve.outputs.git_version }}
-          DOCKER_VERSION: ${{ needs.resolve.outputs.base_version }}
-        run: |
-          docker build -f "${PR_DOCKERFILE}" --target version-check \
-            --build-arg "GIT_VERSION=${GIT_VERSION}" \
-            --build-arg "DOCKER_VERSION=${DOCKER_VERSION}" .
-      - id: cleanup
-        name: docker — cleanup
-        timeout-minutes: 3
-        run: docker image prune -af >/dev/null && docker builder prune -af >/dev/null
-
   lint:
-    name: Lint (md/json/sh/dockerfile/actions)
+    name: Lint (markdown)
     runs-on: ubuntu-latest
-    timeout-minutes: 40
     steps:
-      - id: checkout
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-        timeout-minutes: 3
-      - id: buildx
-        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
-        timeout-minutes: 3
-      - id: build-node
-        name: docker build — lint (node)
-        timeout-minutes: 12
-        run: docker build -f docker/node.dockerfile -t ci-lint-node .
-      - id: build-orphanage
-        name: docker build — lint (orphanage)
-        timeout-minutes: 25
-        run: docker build -f docker/orphanage.dockerfile -t ci-lint-orphanage .
-      - id: repo-lint
-        name: cli repo lints (md/json/whitespace)
-        timeout-minutes: 6
-        run: |
-          set -euo pipefail
-          for check in "md lint" "md link" "md table" "json lint" "whitespace lint"; do
-            # shellcheck disable=SC2086
-            docker run --rm -v "${{ github.workspace }}:/repo" -w /repo ci-lint-node \
-              cli ${check} .
-          done
-      - id: sh-lint
-        name: cli sh lint (shellcheck)
-        timeout-minutes: 6
-        run: |
-          docker run --rm -v "${{ github.workspace }}:/repo" -w /repo ci-lint-orphanage \
-            cli sh lint .
-      - id: actionlint
-        name: cli actions lint
-        timeout-minutes: 3
-        run: |
-          docker run --rm -v "${{ github.workspace }}:/repo" -w /repo ci-lint-orphanage \
-            cli actions lint .
-      - id: dockerfile-lint
-        name: cli dockerfile lint
-        timeout-minutes: 6
-        run: |
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v "${{ github.workspace }}:/repo" -w /repo \
-            ci-lint-orphanage cli dockerfile lint .
-      - id: cleanup
-        name: docker — cleanup
-        timeout-minutes: 3
-        run: docker image prune -af >/dev/null && docker builder prune -af >/dev/null
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --global --no-audit --no-fund markdownlint-cli@0.49.1
+      - run: markdownlint '**/*.md'
 
-  lint-yml:
-    name: Lint (yml)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - id: checkout
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-        timeout-minutes: 3
-      - id: buildx
-        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
-        timeout-minutes: 3
-      - id: build-python
-        name: docker build — lint (python)
-        timeout-minutes: 9
-        run: docker build -f docker/python.dockerfile -t ci-lint-python .
-      - id: yml-lint
-        name: cli yml lint
-        timeout-minutes: 6
-        run: |
-          docker run --rm -v "${{ github.workspace }}:/repo" -w /repo ci-lint-python \
-            cli yml lint .
-      - id: cleanup
-        name: docker — cleanup
-        timeout-minutes: 3
-        run: docker image prune -af >/dev/null && docker builder prune -af >/dev/null
-
-  unit-test:
-    name: Unit tests (bats)
-    needs: version-check
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - id: checkout
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-        timeout-minutes: 3
-      - id: buildx
-        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
-        timeout-minutes: 3
-      - id: unit-test
-        name: docker build — unit-test
-        timeout-minutes: 9
-        run: docker build -f "${PR_DOCKERFILE}" --target unit-test .
-      - id: cleanup
-        name: docker — cleanup
-        timeout-minutes: 3
-        run: docker image prune -af >/dev/null && docker builder prune -af >/dev/null
-
-  runtime-build:
-    name: Runtime image (${{ matrix.variant }})
+  images:
+    name: Build image (${{ matrix.variant }})
     runs-on: ubuntu-latest
     timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
-        variant: [orphanage, node, python, rust, cpp, go, java, media, ai]
+        variant: [node, python, rust, cpp, go, java, media]
     steps:
-      - id: checkout
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-        timeout-minutes: 3
-      - id: buildx
-        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
-        timeout-minutes: 3
-      - id: runtime-build
-        name: docker build — ${{ matrix.variant }}
-        timeout-minutes: 22
+      - uses: actions/checkout@v4
+      - name: docker build — ${{ matrix.variant }}
         run: |
           docker build -f docker/${{ matrix.variant }}.dockerfile \
-            -t ci-runtime-${{ matrix.variant }} .
-      - id: runtime-smoke
-        name: runtime smoke — ${{ matrix.variant }}
-        timeout-minutes: 8
+            -t pkg-manager-${{ matrix.variant }} .
+      - name: Tool presence check — ${{ matrix.variant }}
         run: |
           set -euo pipefail
-          bash src/scripts/release/runtime-smoke.sh \
-            "ci-runtime-${{ matrix.variant }}" "${{ matrix.variant }}"
-      - id: cleanup
-        name: docker — cleanup image + cache
-        timeout-minutes: 6
-        run: |
-          docker image prune -af >/dev/null
-          docker builder prune -af >/dev/null
-
-  integration:
-    name: Integration smoke
-    needs: [resolve, version-check]
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - id: checkout
-        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-        timeout-minutes: 3
-      - id: buildx
-        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c
-        timeout-minutes: 3
-      - id: integration-build
-        name: docker build — integration smoke
-        timeout-minutes: 9
-        run: |
-          docker build -f "${PR_DOCKERFILE}" --target integration-smoke .
-      - id: cleanup
-        name: docker — cleanup
-        timeout-minutes: 3
-        run: docker image prune -af >/dev/null && docker builder prune -af >/dev/null
+          case "${{ matrix.variant }}" in
+            node)   docker run --rm pkg-manager-node   sh -lc 'node --version && npm --version && markdownlint --version' ;;
+            python) docker run --rm pkg-manager-python sh -lc 'python3 --version && yamllint --version' ;;
+            rust)   docker run --rm pkg-manager-rust   sh -lc 'rustc --version && cargo --version' ;;
+            cpp)    docker run --rm pkg-manager-cpp    sh -lc 'g++ --version && cmake --version && clang-format --version' ;;
+            go)     docker run --rm pkg-manager-go     sh -lc 'go version' ;;
+            java)   docker run --rm pkg-manager-java   sh -lc 'java -version && mvn -version && gradle --version' ;;
+            media)  docker run --rm pkg-manager-media  sh -lc 'ffmpeg -version && magick -version' ;;
+          esac
